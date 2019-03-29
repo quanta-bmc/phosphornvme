@@ -257,59 +257,59 @@ using namespace phosphor::logging;
             try
             {
                 nvmeData.present = getNVMeInfobyBusID(_busID, nvmeData); // get NVMe information through i2c by busID.
+            
+                setPresent(nvmeData.present);
+
+                if (nvmeData.present)
+                {
+                    setPropertiesToDbus(nvmeData.sensorValue, nvmeData.vendor, nvmeData.serialNumber, 
+                        nvmeData.smartWarnings,nvmeData.statusFlags,nvmeData.driveLifeUsed);
+
+                    std::string smartWarnings = InfoIface::smartWarnings(); 
+                    std::string ledPath = _ledPath;            
+
+                    if(smartWarnings.empty() == false && ledPath.empty() == false)
+                        checkAssertFaultLED(smartWarnings, ledPath);    
+                } 
             }
             catch(const std::exception& e)
             {
                 log<level::ERR>("Error in get NVMe information",
                         entry("ERROR=%s", e.what())); 
             }
-            setPresent(nvmeData.present);
-
-            setPropertiesToDbus(nvmeData.sensorValue, nvmeData.vendor, nvmeData.serialNumber, 
-                    nvmeData.smartWarnings,nvmeData.statusFlags,nvmeData.driveLifeUsed);
-
-            std::string smartWarnings = InfoIface::smartWarnings(); 
-            std::string ledPath = _ledPath; 
-
-            if(smartWarnings.empty() == false && ledPath.empty() == false)
-                checkAssertFaultLED(smartWarnings, ledPath);  
-        }
-
-               
-              
+        }     
     }
 
     void Nvme::read()
     {       
-        NVMeData nvmeData;
-
-        
+        NVMeData nvmeData;        
 
         if(isPresent())
         {
             try
             {
                 nvmeData.present = getNVMeInfobyBusID(_busID, nvmeData); // get NVMe information through i2c by busID.
+            
+                setPresent(nvmeData.present);
+
+                if (nvmeData.present)
+                {
+                    setPropertiesToDbus(nvmeData.sensorValue, nvmeData.vendor, nvmeData.serialNumber, 
+                        nvmeData.smartWarnings,nvmeData.statusFlags,nvmeData.driveLifeUsed);
+
+                    std::string smartWarnings = InfoIface::smartWarnings(); 
+                    std::string ledPath = _ledPath;            
+
+                    if(smartWarnings.empty() == false && ledPath.empty() == false)
+                        checkAssertFaultLED(smartWarnings, ledPath);    
+                } 
             }
             catch(const std::exception& e)
             {
                 log<level::ERR>("Error in get NVMe information",
                         entry("ERROR=%s", e.what())); 
             }
-            setPresent(nvmeData.present);
-
-            setPropertiesToDbus(nvmeData.sensorValue, nvmeData.vendor, nvmeData.serialNumber, 
-                    nvmeData.smartWarnings,nvmeData.statusFlags,nvmeData.driveLifeUsed);
-
-            std::string smartWarnings = InfoIface::smartWarnings(); 
-            std::string ledPath = _ledPath;            
-
-            if(smartWarnings.empty() == false && ledPath.empty() == false)
-                checkAssertFaultLED(smartWarnings, ledPath);    
-              
-        }   
-
-         
+        }            
     }
 
 }
