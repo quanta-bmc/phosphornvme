@@ -1,12 +1,12 @@
 {
     "config":[
-        {"NvmeDriveIndex":1, "NVMeDriveBusID":16, "NVMeDriveFaultLED":"/xyz/openbmc_project/led/groups/led_u2_0_fault"},
-        {"NvmeDriveIndex":2, "NVMeDriveBusID":17, "NVMeDriveFaultLED":"/xyz/openbmc_project/led/groups/led_u2_1_fault"},
-        {"NvmeDriveIndex":3, "NVMeDriveBusID":18, "NVMeDriveFaultLED":"/xyz/openbmc_project/led/groups/led_u2_2_fault"},
-        {"NvmeDriveIndex":4, "NVMeDriveBusID":19, "NVMeDriveFaultLED":"/xyz/openbmc_project/led/groups/led_u2_3_fault"},
-        {"NvmeDriveIndex":5, "NVMeDriveBusID":20, "NVMeDriveFaultLED":"/xyz/openbmc_project/led/groups/led_u2_4_fault"},
-        {"NvmeDriveIndex":6, "NVMeDriveBusID":21, "NVMeDriveFaultLED":"/xyz/openbmc_project/led/groups/led_u2_5_fault"},
-        {"NvmeDriveIndex":7, "NVMeDriveBusID":22, "NVMeDriveFaultLED":"/xyz/openbmc_project/led/groups/led_u2_6_fault"},
-        {"NvmeDriveIndex":8, "NVMeDriveBusID":23, "NVMeDriveFaultLED":"/xyz/openbmc_project/led/groups/led_u2_7_fault"}
+        {"NvmeDriveIndex":0, "NVMeDriveBusID":16, "NVMeDriveFaultLED":"/xyz/openbmc_project/led/groups/led_u2_0_fault"},
+        {"NvmeDriveIndex":1, "NVMeDriveBusID":17, "NVMeDriveFaultLED":"/xyz/openbmc_project/led/groups/led_u2_1_fault"},
+        {"NvmeDriveIndex":2, "NVMeDriveBusID":18, "NVMeDriveFaultLED":"/xyz/openbmc_project/led/groups/led_u2_2_fault"},
+        {"NvmeDriveIndex":3, "NVMeDriveBusID":19, "NVMeDriveFaultLED":"/xyz/openbmc_project/led/groups/led_u2_3_fault"},
+        {"NvmeDriveIndex":4, "NVMeDriveBusID":20, "NVMeDriveFaultLED":"/xyz/openbmc_project/led/groups/led_u2_4_fault"},
+        {"NvmeDriveIndex":5, "NVMeDriveBusID":21, "NVMeDriveFaultLED":"/xyz/openbmc_project/led/groups/led_u2_5_fault"},
+        {"NvmeDriveIndex":6, "NVMeDriveBusID":22, "NVMeDriveFaultLED":"/xyz/openbmc_project/led/groups/led_u2_6_fault"},
+        {"NvmeDriveIndex":7, "NVMeDriveBusID":23, "NVMeDriveFaultLED":"/xyz/openbmc_project/led/groups/led_u2_7_fault"}
     ]    
 }
