@@ -124,12 +124,7 @@ using namespace phosphor::logging;
     bool Nvme::isPresent()
     {  
         return ItemIface::present();          
-    } 
-    
-    void Nvme::setPresent(const bool value)
-    {  
-        ItemIface::present(value);          
-    }    
+    }     
 
     void Nvme::setPropertiesToDbus(const u_int64_t value,const std::string vendorID,
         const std::string serialNumber,const std::string smartWarnings,
@@ -251,14 +246,13 @@ using namespace phosphor::logging;
     void Nvme::init()
     {        
         NVMeData nvmeData;
+        std::string ledPath = _ledPath;
 
         if(isPresent())
         {
             try
             {
                 nvmeData.present = getNVMeInfobyBusID(_busID, nvmeData); // get NVMe information through i2c by busID.
-            
-                setPresent(nvmeData.present);
 
                 if (nvmeData.present)
                 {
@@ -266,10 +260,14 @@ using namespace phosphor::logging;
                         nvmeData.smartWarnings,nvmeData.statusFlags,nvmeData.driveLifeUsed);
 
                     std::string smartWarnings = InfoIface::smartWarnings(); 
-                    std::string ledPath = _ledPath;            
+                                
 
                     if(smartWarnings.empty() == false && ledPath.empty() == false)
                         checkAssertFaultLED(smartWarnings, ledPath);    
+                } 
+                else // is present but can not get data, assert fault LED.
+                {
+                    setFaultLED("Asserted", true, ledPath);
                 } 
             }
             catch(const std::exception& e)
@@ -283,14 +281,13 @@ using namespace phosphor::logging;
     void Nvme::read()
     {       
         NVMeData nvmeData;        
+        std::string ledPath = _ledPath;            
 
         if(isPresent())
         {
             try
             {
                 nvmeData.present = getNVMeInfobyBusID(_busID, nvmeData); // get NVMe information through i2c by busID.
-            
-                setPresent(nvmeData.present);
 
                 if (nvmeData.present)
                 {
@@ -298,10 +295,14 @@ using namespace phosphor::logging;
                         nvmeData.smartWarnings,nvmeData.statusFlags,nvmeData.driveLifeUsed);
 
                     std::string smartWarnings = InfoIface::smartWarnings(); 
-                    std::string ledPath = _ledPath;            
+                    
 
                     if(smartWarnings.empty() == false && ledPath.empty() == false)
                         checkAssertFaultLED(smartWarnings, ledPath);    
+                }
+                else // is present but can not get data, assert fault LED.
+                {
+                    setFaultLED("Asserted", true, ledPath);
                 } 
             }
             catch(const std::exception& e)
