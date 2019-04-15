@@ -5,7 +5,8 @@ sbin_PROGRAMS = nvme_main
 nvme_main_SOURCES = \
                 nvme_main.cpp  \
                 nvme_manager.cpp \
-                smbus.cpp
+                smbus.cpp \
+                nvmes.cpp
 
 
 nvme_main_LDFLAGS = \

@@ -45,14 +45,19 @@ AS_IF([test "x$DBUS_PROPERTY_IFACE" == "x"], [DBUS_PROPERTY_IFACE="org.freedeskt
 AC_DEFINE_UNQUOTED([DBUS_PROPERTY_IFACE], ["$DBUS_PROPERTY_IFACE"], [The nvme Dbus root])
 
 # Service dbus interface
-AC_ARG_VAR(LED_BUSNAME, [The LED manager dbus name])
-AS_IF([test "x$LED_BUSNAME" == "x"], [LED_BUSNAME="xyz.openbmc_project.LED.GroupManager"])
-AC_DEFINE_UNQUOTED([LED_BUSNAME], ["$LED_BUSNAME"], [The nvme Dbus root])
+AC_ARG_VAR(LED_GROUP_BUSNAME, [The LED group manager dbus name])
+AS_IF([test "x$LED_GROUP_BUSNAME" == "x"], [LED_GROUP_BUSNAME="xyz.openbmc_project.LED.GroupManager"])
+AC_DEFINE_UNQUOTED([LED_GROUP_BUSNAME], ["$LED_GROUP_BUSNAME"], [The LED group manager dbus name])
 
 # Service dbus interface
 AC_ARG_VAR(LED_IFACE, [The LED manager interface])
 AS_IF([test "x$LED_IFACE" == "x"], [LED_IFACE="xyz.openbmc_project.Led.Group"])
 AC_DEFINE_UNQUOTED([LED_IFACE], ["$LED_IFACE"], [The LED manager interface])
+
+# Service dbus interface
+AC_ARG_VAR(LED_CONTROLLER_IFACE, [The LED controller interface])
+AS_IF([test "x$LED_CONTROLLER_IFACE" == "x"], [LED_CONTROLLER_IFACE="xyz.openbmc_project.Led.Physical"])
+AC_DEFINE_UNQUOTED([LED_CONTROLLER_IFACE], ["$LED_CONTROLLER_IFACE"], [The LED controller interface])
 
 # Checks for library functions.
 LT_INIT # Required for systemd linking

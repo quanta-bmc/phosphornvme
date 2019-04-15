@@ -156,7 +156,7 @@ int phosphor::smbus::Smbus::smbus_block_write(int fd, uint8_t cmd, size_t data_l
     if(res < 0) {
         fprintf(stderr, "Error: i2c_smbus_write_block_data failed\n");
     }
-    
+
     /* clear PEC */
     if (ioctl(fd, I2C_PEC, 0) < 0) {
         fprintf(stderr, "Error: Could not clear PEC: %s\n", strerror(errno));
@@ -168,30 +168,30 @@ int phosphor::smbus::Smbus::smbus_block_write(int fd, uint8_t cmd, size_t data_l
 
 
 int phosphor::smbus::Smbus::smbusInit(int smbus_num)
-{    
+{
     int res = 0;
-    char filename[20];    
+    char filename[20];
 
     gMutex.lock();
 
     fd[smbus_num] = open_i2c_dev(smbus_num, filename, sizeof(filename), 0);
     if(fd[smbus_num] < 0) {
         gMutex.unlock();
-        
+
         return -1;
-    }    
+    }
 
     //printf("\rSmbusInit: fd[smbus_num] = %d", fd[smbus_num]);
     res =  fd[smbus_num];
 
     gMutex.unlock();
-    
+
     return res;
 }
 
 void phosphor::smbus::Smbus::smbusClose(int smbus_num)
-{   
-    close(fd[smbus_num]);     
+{
+    close(fd[smbus_num]);
 }
 
 
@@ -203,7 +203,7 @@ int phosphor::smbus::Smbus::SendSmbusCmd(int smbus_num, int8_t device_addr, uint
 
     Rx_buf[0] = 1;
     /* Smbus block read */
-    
+
     gMutex.lock();
     res = i2c_read_after_write(fd[smbus_num], 0, device_addr, 1, (unsigned char *)&smbuscmd, I2C_DATA_MAX, 
         (const unsigned char *)Rx_buf);
@@ -228,14 +228,14 @@ int phosphor::smbus::Smbus::SendSmbusCmd(int smbus_num, int8_t device_addr, uint
             strcat(rsp_data, tmp);
     }
     gMutex.unlock();
-    
+
     return res;
 }
 
 int phosphor::smbus::Smbus::GetSmbusCmdWord(int smbus_num, int8_t device_addr, int8_t smbuscmd )
 {
     int res;
-    
+
     gMutex.lock();
     if(fd[smbus_num] > 0) {
         res = set_slave_addr(fd[smbus_num], device_addr, I2C_SLAVE);
@@ -262,14 +262,14 @@ int phosphor::smbus::Smbus::GetSmbusCmdWord(int smbus_num, int8_t device_addr, i
 int phosphor::smbus::Smbus::SetSmbusCmdWord(int smbus_num, int8_t device_addr, int8_t smbuscmd , int16_t data)
 {
     int res;
-    
+
     gMutex.lock();
     if(fd[smbus_num] > 0) {
         res = set_slave_addr(fd[smbus_num], device_addr, I2C_SLAVE);
         if(res < 0) {
             fprintf(stderr, "set PMBUS BUS%d to slave address 0x%02X failed (%s)\n", smbus_num, device_addr,strerror(errno));
                 close(fd[smbus_num]);
-                
+
                 gMutex.unlock();
             return -1;
         }
@@ -279,7 +279,7 @@ int phosphor::smbus::Smbus::SetSmbusCmdWord(int smbus_num, int8_t device_addr, i
     if (res < 0) {
         fprintf(stderr, "Error: Read failed\n");
         gMutex.unlock();
-        
+
         return -1;
     }
 
@@ -291,14 +291,14 @@ int phosphor::smbus::Smbus::SetSmbusCmdWord(int smbus_num, int8_t device_addr, i
 int phosphor::smbus::Smbus::GetSmbusCmdByte(int smbus_num, int8_t device_addr, int8_t smbuscmd)
 {
     int res;
-    
+
     gMutex.lock();
     if(fd[smbus_num] > 0) {
         res = set_slave_addr(fd[smbus_num], device_addr, I2C_SLAVE);
         if(res < 0) {
             fprintf(stderr, "set PMBUS BUS%d to slave address 0x%02X failed (%s)\n", smbus_num, device_addr,strerror(errno));
                 close(fd[smbus_num]);
-                
+
                 gMutex.unlock();
             return -1;
         }
@@ -308,11 +308,11 @@ int phosphor::smbus::Smbus::GetSmbusCmdByte(int smbus_num, int8_t device_addr, i
     if (res < 0) {
         fprintf(stderr, "Error: Read failed\n");
         gMutex.unlock();
-        
+
         return -1;
     }
     // printf("[GetSmbusCmdByte]0x%0*x\n",2, res);
-    
+
     gMutex.unlock();
     return res;
 }
@@ -320,14 +320,14 @@ int phosphor::smbus::Smbus::GetSmbusCmdByte(int smbus_num, int8_t device_addr, i
 int phosphor::smbus::Smbus::SetSmbusCmdByte(int smbus_num, int8_t device_addr, int8_t smbuscmd , int8_t data)
 {
     int res;
-   
+
     gMutex.lock();
     if(fd[smbus_num] > 0) {
         res = set_slave_addr(fd[smbus_num], device_addr, I2C_SLAVE);
         if(res < 0) {
             fprintf(stderr, "set PMBUS BUS%d to slave address 0x%02X failed (%s)\n", smbus_num, device_addr,strerror(errno));
                 close(fd[smbus_num]);
-                
+
                 gMutex.unlock();
             return -1;
         }
@@ -337,11 +337,11 @@ int phosphor::smbus::Smbus::SetSmbusCmdByte(int smbus_num, int8_t device_addr, i
     if (res < 0) {
         fprintf(stderr, "Error: Read failed\n");
         gMutex.unlock();
-        
+
         return -1;
     }
     // printf("[SetSmbusCmdByte]0x%0*x\n",2, res);
-    
+
     gMutex.unlock();
     return res;
 }
@@ -349,14 +349,14 @@ int phosphor::smbus::Smbus::SetSmbusCmdByte(int smbus_num, int8_t device_addr, i
 int phosphor::smbus::Smbus::SmbusCmdProcessCall(int smbus_num, int8_t device_addr, int8_t smbuscmd , int16_t smbusdata )
 {
     int res;
-    
+
     gMutex.lock();
     if(fd[smbus_num] > 0) {
         res = set_slave_addr(fd[smbus_num], device_addr, I2C_SLAVE);
         if(res < 0) {
             fprintf(stderr, "set PMBUS BUS%d to slave address 0x%02X failed (%s)\n", smbus_num, device_addr,strerror(errno));
                 close(fd[smbus_num]);
-                
+
                 gMutex.unlock();
             return -1;
         }
@@ -365,12 +365,12 @@ int phosphor::smbus::Smbus::SmbusCmdProcessCall(int smbus_num, int8_t device_add
     res = i2c_smbus_process_call(fd[smbus_num], smbuscmd , smbusdata);
     if (res < 0) {
         fprintf(stderr, "Error: Read failed\n");
-        
+
         gMutex.unlock();
         return -1;
     }
     printf("\r[GetSmbusCmdProcessCall]0x%0*x",2, res);
-    
+
     gMutex.unlock();
     return res;
 }
@@ -386,14 +386,14 @@ uint8_t tx_len, char *rsp_data)
 
     Rx_buf[0] = 1;
     /* Smbus block read */
-    
+
     gMutex.lock();
     res = i2c_read_after_write(fd[smbus_num], 0, device_addr, tx_len, (unsigned char *)tx_data, I2C_DATA_MAX, 
-        (const unsigned char *)Rx_buf);    
+        (const unsigned char *)Rx_buf);
 
     if(res < 0) {
         fprintf(stderr, "Error: SendSmbusCmd failed\n");
-        
+
         gMutex.unlock();
         return -1;
     }
@@ -412,7 +412,7 @@ uint8_t tx_len, char *rsp_data)
         sprintf(tmp, " %02x", Rx_buf[i]);
             strcat(rsp_data, tmp);
     }
-    
+
     gMutex.unlock();
     return res;
 }
@@ -423,14 +423,14 @@ uint8_t tx_len)
     int res, i, res_len, tmp_tx_len = 3;
     char tmp[4];
     unsigned char tmp_tx_buf[I2C_DATA_MAX] = {0};
-    
+
     gMutex.lock();
     if(fd[smbus_num] > 0) {
         res = set_slave_addr(fd[smbus_num], device_addr, I2C_SLAVE);
         if(res < 0) {
             fprintf(stderr, "set PMBUS BUS%d to slave address 0x%02X failed (%s)\n", smbus_num, device_addr,strerror(errno));
                 close(fd[smbus_num]);
-                
+
                 gMutex.unlock();
             return -1;
         }
@@ -439,10 +439,10 @@ uint8_t tx_len)
     /* Set PEC */
     if (ioctl(fd[smbus_num] , I2C_PEC, 1) < 0) {
         fprintf(stderr, "Error: Could not set PEC: %s\n", strerror(errno));
-        
+
         gMutex.unlock();
         return -errno;
-    }    
+    }
 
 
     res = i2c_smbus_write_block_data(fd[smbus_num], command, tx_len, (unsigned char *)tx_data);    
@@ -454,10 +454,10 @@ uint8_t tx_len)
     /* clear PEC */
     if (ioctl(fd[smbus_num], I2C_PEC, 0) < 0) {
         fprintf(stderr, "Error: Could not clear PEC: %s\n", strerror(errno));
-        
+
         return -errno;
-    }    
-    
+    }
+
     return res;
 }
 
@@ -468,7 +468,7 @@ uint8_t tx_len)
     int res, i, res_len, tmp_tx_len = 3;
     char tmp[4];
     unsigned char tmp_tx_buf[I2C_DATA_MAX] = {0};
-    
+
     gMutex.lock();
     res = i2c_master_write(fd[smbus_num],device_addr,tx_len,tx_data);
 
@@ -476,7 +476,7 @@ uint8_t tx_len)
         fprintf(stderr, "Error: SendSmbusWBlockByMasterWrite failed\n");
     }
 
-    
+
     gMutex.unlock();
     return res;
 }
@@ -484,29 +484,29 @@ uint8_t tx_len)
 
 int phosphor::smbus::Smbus::SendSmbusRWBlockCmdRAW(int smbus_num, int8_t device_addr, uint8_t *tx_data,
 uint8_t tx_len, uint8_t *rsp_data)
-{ 
+{
     int res, i, res_len, tmp_tx_len = 8;
     char tmp[4];
     unsigned char Rx_buf[I2C_DATA_MAX] = {0};
-    unsigned char tmp_tx_buf[I2C_DATA_MAX] = {0};  
-    
-    Rx_buf[0] = 1;         
+    unsigned char tmp_tx_buf[I2C_DATA_MAX] = {0};
+
+    Rx_buf[0] = 1;
 
     gMutex.lock();
-    
-    res = i2c_read_after_write(fd[smbus_num], 0, device_addr, tx_len, (unsigned char *)tx_data, I2C_DATA_MAX, 
-        (const unsigned char *)Rx_buf);       
 
-    if(res < 0) {        
+    res = i2c_read_after_write(fd[smbus_num], 0, device_addr, tx_len, (unsigned char *)tx_data, I2C_DATA_MAX, 
+        (const unsigned char *)Rx_buf);
+
+    if(res < 0) {
         fprintf(stderr, "Error: SendSmbusRWBlockCmdRAW failed\n");
     }
 
-    res_len = Rx_buf[0]+1; 
-    
-    memcpy(rsp_data,Rx_buf,res_len);    
+    res_len = Rx_buf[0]+1;
+
+    memcpy(rsp_data,Rx_buf,res_len);
 
     gMutex.unlock();
-     
+
     return res;
 }
 

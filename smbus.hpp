@@ -15,9 +15,9 @@ namespace smbus
 {
 
 
-    class Smbus 
+    class Smbus
     {
-        public:    
+        public:
 
         Smbus(){};
 
@@ -50,7 +50,7 @@ namespace smbus
 
         int SendSmbusWBlockCmd(int smbus_num, int8_t device_addr , int8_t command, uint8_t *tx_data,
             uint8_t tx_len);
-        
+
         int SendSmbusWBlockByMasterWrite(int smbus_num, int8_t device_addr , int8_t command, uint8_t *tx_data,
             uint8_t tx_len);
 
