@@ -31,12 +31,12 @@ AC_DEFINE_UNQUOTED([NVME_REQUEST_NAME], ["$NVME_REQUEST_NAME"], [The Dbus busnam
 
 # Service dbus root
 AC_ARG_VAR(NVME_OBJ_PATH_ROOT, [The nvme Dbus root])
-AS_IF([test "x$NVME_OBJ_PATH_ROOT" == "x"], [NVME_OBJ_PATH_ROOT="/xyz/openbmc_project/nvme"])
+AS_IF([test "x$NVME_OBJ_PATH_ROOT" == "x"], [NVME_OBJ_PATH_ROOT="/xyz/openbmc_project/sensors/temperature"])
 AC_DEFINE_UNQUOTED([NVME_OBJ_PATH_ROOT], ["$NVME_OBJ_PATH_ROOT"], [The nvme Dbus root])
 
 # Service dbus objpath
 AC_ARG_VAR(NVME_OBJ_PATH, [The nvme object path])
-AS_IF([test "x$NVME_OBJ_PATH" == "x"], [NVME_OBJ_PATH="/xyz/openbmc_project/nvme/"])
+AS_IF([test "x$NVME_OBJ_PATH" == "x"], [NVME_OBJ_PATH="/xyz/openbmc_project/sensors/temperature/nvme"])
 AC_DEFINE_UNQUOTED([NVME_OBJ_PATH], ["$NVME_OBJ_PATH"], [The nvme Dbus root])
 
 # Service dbus interface

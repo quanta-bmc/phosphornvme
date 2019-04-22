@@ -25,11 +25,41 @@ class Nvme
     {
     }
 
+    struct NVMeConfig
+    {
+        uint8_t index;
+        uint8_t busID;
+        std::string faultLedGroupPath;
+        uint8_t presentPin;
+        uint8_t pwrGoodPin;
+        std::string locateLedControllerBusName;
+        std::string locateLedControllerPath;
+        std::string locateLedGroupPath;
+        uint64_t criticalHigh;
+        uint64_t criticalLow;
+        uint64_t maxValue;
+        uint64_t minValue;
+    };
+
+    struct NVMeData {
+      bool present;
+      std::string vendor;
+      std::string serialNumber;
+      std::string smartWarnings;
+      std::string statusFlags;
+      std::string driveLifeUsed;
+      u_int64_t sensorValue;
+    };
+
     void run();
     const std::string _objPath;
 
     std::string getValue(std::string);
-    std::unordered_map<std::string, std::unique_ptr<phosphor::nvme::NvmeSSD>> nvmes;
+    std::unordered_map<std::string, std::shared_ptr<phosphor::nvme::NvmeSSD>>
+        nvmes;
+    void setSSDLEDStatus(std::shared_ptr<phosphor::nvme::NvmeSSD> nvmeSSD,
+                         phosphor::nvme::Nvme::NVMeConfig config, bool success,
+                         phosphor::nvme::Nvme::NVMeData nvmeData);
 
   private:
     sdbusplus::bus::bus &bus;

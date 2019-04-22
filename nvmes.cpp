@@ -164,9 +164,40 @@ void NvmeSSD::setPresent(const bool value)
     ItemIface::present(value);
 }
 
-void NvmeSSD::setPropertiesToDbus(const u_int64_t value, const std::string vendorID,
-                               const std::string serialNumber, const std::string smartWarnings,
-                               const std::string statusFlags, const std::string driveLifeUsed)
+void NvmeSSD::checkSensorThreshold()
+{
+    uint64_t value = ValueIface::value();
+    uint64_t criticalHigh = CriticalInterface::criticalHigh();
+    uint64_t criticalLow = CriticalInterface::criticalLow();
+
+    if (value > criticalHigh)
+        CriticalInterface::criticalAlarmHigh(true);
+    else
+        CriticalInterface::criticalAlarmHigh(false);
+
+    if (value < criticalLow)
+        CriticalInterface::criticalAlarmLow(true);
+    else
+        CriticalInterface::criticalAlarmLow(false);
+}
+
+void NvmeSSD::setSensorThreshold(uint64_t criticalHigh, uint64_t criticalLow,
+                                 uint64_t maxValue, uint64_t minValue)
+{
+
+    CriticalInterface::criticalHigh(criticalHigh);
+    CriticalInterface::criticalLow(criticalLow);
+    ValueIface::maxValue(maxValue);
+    ValueIface::minValue(minValue);
+}
+
+void NvmeSSD::setPropertiesToDbus(const u_int64_t value,
+                                  const std::string vendorID,
+                                  const std::string serialNumber,
+                                  const std::string smartWarnings,
+                                  const std::string statusFlags,
+                                  const std::string driveLifeUsed
+                                  )
 {
     ValueIface::value(value);
     AssetIface::manufacturer(vendorID);
@@ -175,7 +206,6 @@ void NvmeSSD::setPropertiesToDbus(const u_int64_t value, const std::string vendo
     InfoIface::statusFlags(statusFlags);
     InfoIface::driveLifeUsed(driveLifeUsed);
 }
-
 
 } // namespace nvme
 } // namespace phosphor
