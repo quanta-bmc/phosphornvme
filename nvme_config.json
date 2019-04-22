@@ -80,5 +80,13 @@
             "NVMeDrivePresentPin": 155,
             "NVMeDrivePwrGoodPin": 168
         }
+    ],
+    "threshold":[
+        {
+            "criticalHigh":80,
+            "criticalLow":0,
+            "maxValue":80,
+            "minValue":0
+        }
     ]
 }
