@@ -124,7 +124,6 @@ void Nvme::run()
     catch (const std::exception &e)
     {
         log<level::ERR>("Error in polling loop", entry("ERROR=%s", e.what()));
-        throw;
     }
 }
 
@@ -404,7 +403,6 @@ void Nvme::read()
     catch (const std::exception &e)
     {
         log<level::ERR>("Error in read loop", entry("ERROR=%s", e.what()));
-        throw;
     }
 }
 } // namespace nvme
