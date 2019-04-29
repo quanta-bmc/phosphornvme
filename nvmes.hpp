@@ -1,5 +1,4 @@
 #include "config.h"
-
 #include <sdbusplus/bus.hpp>
 #include <sdbusplus/server.hpp>
 #include <sdeventplus/clock.hpp>
@@ -45,29 +44,13 @@ class NvmeSSD : public NvmeIfaces
     virtual ~NvmeSSD() = default;
 
     NvmeSSD(sdbusplus::bus::bus &bus, const char *objPath) :
-        NvmeIfaces(bus, objPath), bus(bus), _objPath(objPath)
+        NvmeIfaces(bus, objPath), bus(bus)
     {
     }
 
     void setPresent(const bool value);
-    const std::string _objPath;
 
-    template <typename T>
-    void setFaultLED(const std::string &property, const T &value,
-                     std::string &ledPath);
-
-    template <typename T>
-    void setLocateLED(const std::string &property, const T &value,
-                      std::string &locateLedBusName,
-                      std::string &locateLedPath);
-
-    void checkAssertFaultLED(std::string &locateLedGroupPath,
-                             std::string &ledPath, bool request);
-    void checkAssertLocateLED(std::string &ledPath,
-                              std::string &locateLedBusName,
-                              std::string &locateLedPath, bool ispresent);
     void assertFaultLog(int smartWarning);
-    bool getLEDGroupState(std::string &ledPath);
 
     void setPropertiesToDbus(const u_int64_t value, const std::string vendorID,
                              const std::string serialNumber,

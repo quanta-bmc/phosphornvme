@@ -12,11 +12,9 @@ AM_PROG_AR
 AC_PROG_INSTALL
 AC_PROG_MAKE_SET
 
-# Checks for typedefs, structures, and compiler characteristics.
+# Checks compiler characteristics.
 AX_CXX_COMPILE_STDCXX_17([noext])
 AX_APPEND_COMPILE_FLAGS([-Wall -Wno-unused-variable], [CXXFLAGS])
-
-# Checks for libraries.
 
 # Checks for modules
 PKG_CHECK_MODULES([SDBUSPLUS], [sdbusplus],, [AC_MSG_ERROR([Could not find sdbusplus...openbmc/sdbusplus package required])])
@@ -44,22 +42,21 @@ AC_ARG_VAR(DBUS_PROPERTY_IFACE, [The properies interface])
 AS_IF([test "x$DBUS_PROPERTY_IFACE" == "x"], [DBUS_PROPERTY_IFACE="org.freedesktop.DBus.Properties"])
 AC_DEFINE_UNQUOTED([DBUS_PROPERTY_IFACE], ["$DBUS_PROPERTY_IFACE"], [The nvme Dbus root])
 
-# Service dbus interface
+# LED group service dbus busname
 AC_ARG_VAR(LED_GROUP_BUSNAME, [The LED group manager dbus name])
 AS_IF([test "x$LED_GROUP_BUSNAME" == "x"], [LED_GROUP_BUSNAME="xyz.openbmc_project.LED.GroupManager"])
 AC_DEFINE_UNQUOTED([LED_GROUP_BUSNAME], ["$LED_GROUP_BUSNAME"], [The LED group manager dbus name])
 
-# Service dbus interface
-AC_ARG_VAR(LED_IFACE, [The LED manager interface])
-AS_IF([test "x$LED_IFACE" == "x"], [LED_IFACE="xyz.openbmc_project.Led.Group"])
-AC_DEFINE_UNQUOTED([LED_IFACE], ["$LED_IFACE"], [The LED manager interface])
+# LED group interface
+AC_ARG_VAR(LED_GROUP_IFACE, [The LED group manager interface])
+AS_IF([test "x$LED_GROUP_IFACE" == "x"], [LED_GROUP_IFACE="xyz.openbmc_project.Led.Group"])
+AC_DEFINE_UNQUOTED([LED_GROUP_IFACE], ["$LED_GROUP_IFACE"], [The LED group manager interface])
 
-# Service dbus interface
+# LED controller interface
 AC_ARG_VAR(LED_CONTROLLER_IFACE, [The LED controller interface])
 AS_IF([test "x$LED_CONTROLLER_IFACE" == "x"], [LED_CONTROLLER_IFACE="xyz.openbmc_project.Led.Physical"])
 AC_DEFINE_UNQUOTED([LED_CONTROLLER_IFACE], ["$LED_CONTROLLER_IFACE"], [The LED controller interface])
 
-# Checks for library functions.
 LT_INIT # Required for systemd linking
 
 # Create configured output

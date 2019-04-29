@@ -61,6 +61,23 @@ class Nvme
                          phosphor::nvme::Nvme::NVMeConfig config, bool success,
                          phosphor::nvme::Nvme::NVMeData nvmeData);
 
+    template <typename T>
+    void setFaultLED(const std::string &property, const T &value,
+                     std::string &ledPath);
+
+    template <typename T>
+    void setLocateLED(const std::string &property, const T &value,
+                      std::string &locateLedBusName,
+                      std::string &locateLedPath);
+
+    void checkAssertFaultLED(std::string &locateLedGroupPath,
+                             std::string &ledPath, bool request);
+    void checkAssertLocateLED(std::string &ledPath,
+                              std::string &locateLedBusName,
+                              std::string &locateLedPath, bool ispresent);
+
+    bool getLEDGroupState(std::string &ledPath);
+
   private:
     sdbusplus::bus::bus &bus;
 
