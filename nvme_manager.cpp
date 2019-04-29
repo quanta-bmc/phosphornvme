@@ -9,6 +9,7 @@
 #include <sstream>
 #include <string>
 #include "i2c-dev.h"
+#include <xyz/openbmc_project/Led/Physical/server.hpp>
 
 #define MAX_I2C_BUS 30
 #define MONITOR_INTERVAL_SENCODS 1
@@ -18,7 +19,7 @@
 #define POWERGD "1"
 
 static int fd[MAX_I2C_BUS] = {0};
-static constexpr auto configFile = "/usr/share/nvme_config.json";
+static constexpr auto configFile = "/etc/nvme/nvme_config.json";
 auto retries = 3;
 static constexpr auto delay = std::chrono::milliseconds{100};
 using Json = nlohmann::json;
@@ -32,6 +33,117 @@ namespace nvme
 
 using namespace std;
 using namespace phosphor::logging;
+
+void Nvme::checkAssertFaultLED(std::string &locateLedGroupPath, std::string &faultLedGroupPath, bool request)
+{
+    if(locateLedGroupPath.empty() || faultLedGroupPath.empty())
+    {
+        return;
+    }
+
+    if( !getLEDGroupState(locateLedGroupPath)) // Before asserted LED, check whether is Identify or not.
+    {
+        setFaultLED("Asserted", request, faultLedGroupPath);
+    }
+}
+
+void Nvme::checkAssertLocateLED(std::string &locateLedGroupPath, std::string &locateLedBusName, std::string &locateLedPath , bool isPresent)
+{
+    if(locateLedGroupPath.empty() || locateLedBusName.empty() || locateLedPath.empty())
+    {
+        return;
+    }
+
+    namespace server = sdbusplus::xyz::openbmc_project::Led::server;
+
+    if( !getLEDGroupState(locateLedGroupPath))
+    {
+        if(isPresent)
+            setLocateLED("State", server::convertForMessage(server::Physical::Action::On), locateLedBusName, locateLedPath);
+        else
+            setLocateLED("State", server::convertForMessage(server::Physical::Action::Off), locateLedBusName, locateLedPath);
+    }
+
+}
+
+bool Nvme::getLEDGroupState(std::string &ledPath)
+{
+    std::string obj_path;
+    obj_path = ledPath;
+    bool asserted = false;
+
+    try{
+        auto method = bus.new_method_call(LED_GROUP_BUSNAME, obj_path.c_str(),
+                                      DBUS_PROPERTY_IFACE, "GetAll");
+
+        method.append(LED_GROUP_IFACE);
+        auto reply = bus.call(method);
+
+        std::map<std::string, variant<bool>> properties;
+        reply.read(properties);
+
+        asserted = get<bool>(properties.at("Asserted"));
+
+    }catch (const sdbusplus::exception::SdBusError& ex)
+    {
+        log<level::ERR>("Call method fail: Error in get LED group status.",
+                        entry("ERROR=%s", ex.what()));
+    }
+    return asserted;
+}
+
+template <typename T>
+void Nvme::setFaultLED(const std::string &property, const T &value, std::string &ledPath)
+{
+    if(ledPath.empty())
+        return;
+
+    sdbusplus::message::variant<bool> data = value;
+    std::string obj_path;
+    obj_path = ledPath;
+
+    try{
+        auto methodCall = bus.new_method_call(LED_GROUP_BUSNAME, obj_path.c_str(),
+                                            DBUS_PROPERTY_IFACE, "Set");
+
+        methodCall.append(LED_GROUP_IFACE);
+        methodCall.append(property);
+        methodCall.append(data);
+
+        auto reply = bus.call(methodCall);
+
+    }catch (const sdbusplus::exception::SdBusError& ex)
+    {
+        log<level::ERR>("Call method fail: set fault LED Aasserted.",
+                        entry("ERROR=%s", ex.what()));
+        return ;
+    }
+}
+
+template <typename T>
+void Nvme::setLocateLED(const std::string& property, const T& value, std::string &locateLedBusName, std::string &locateLedPath)
+{
+    sdbusplus::message::variant<T> data = value;
+    std::string obj_path;
+    obj_path = locateLedPath;
+
+    try{
+        auto methodCall = bus.new_method_call(locateLedBusName.c_str(), obj_path.c_str(),
+                                                DBUS_PROPERTY_IFACE, "Set");
+
+        methodCall.append(LED_CONTROLLER_IFACE);
+        methodCall.append(property);
+        methodCall.append(data);
+
+        auto reply = bus.call(methodCall);
+
+    }catch (const sdbusplus::exception::SdBusError& ex)
+    {
+        log<level::ERR>("Call method fail: set locate LED state.",
+                        entry("ERROR=%s", ex.what()));
+        return ;
+    }
+}
 
 std::string intToHex(int input)
 {
@@ -172,7 +284,7 @@ std::vector<phosphor::nvme::Nvme::NVMeConfig> getNvmeConfig()
         }
         else
         {
-            log<level::INFO>("Invalid NVMe config file");
+            log<level::INFO>("Invalid NVMe config file, thresholds dosen't exist");
         }
 
         if (!readings.empty())
@@ -210,7 +322,7 @@ std::vector<phosphor::nvme::Nvme::NVMeConfig> getNvmeConfig()
         }
         else
         {
-            log<level::INFO>("Invalid NVMe config file");
+            log<level::INFO>("Invalid NVMe config file, config dosen't exist");
         }
     }
     catch (const Json::exception &e)
@@ -240,6 +352,7 @@ std::string Nvme::getValue(std::string fullPath)
         {
             --retries;
             std::this_thread::sleep_for(delay);
+            log<level::DEBUG>("Can not open gpio path", entry("MSG:%s", e.what()));
             continue;
         }
         break;
@@ -253,22 +366,6 @@ void Nvme::init()
 {
     // read json file
     configs = getNvmeConfig();
-
-    try{
-        for (int i = 0; i < configs.size(); i++)
-        {
-            std::string objPath = NVME_OBJ_PATH + std::to_string(configs[i].index);
-            auto nvmeSSD = std::make_shared<phosphor::nvme::NvmeSSD>(
-                            bus, objPath.c_str());
-            nvmes.emplace(std::to_string(configs[i].index), nvmeSSD);
-            nvmeSSD->setSensorThreshold(
-                            configs[i].criticalHigh, configs[i].criticalLow,
-                            configs[i].maxValue, configs[i].minValue);
-        }
-
-    }catch (const std::exception &e){
-        log<level::ERR>("Create d-bus path fail");
-    }
 }
 
 void Nvme::setSSDLEDStatus(std::shared_ptr<phosphor::nvme::NvmeSSD> nvmeSSD,
@@ -284,9 +381,9 @@ void Nvme::setSSDLEDStatus(std::shared_ptr<phosphor::nvme::NvmeSSD> nvmeSSD,
             auto request = (strcmp(nvmeData.smartWarnings.c_str(), "ff") == 0)
                                ? false
                                : true;
-            nvmeSSD->checkAssertFaultLED(config.locateLedGroupPath,
+            checkAssertFaultLED(config.locateLedGroupPath,
                                     config.faultLedGroupPath, request);
-            nvmeSSD->checkAssertLocateLED(config.locateLedGroupPath,
+            checkAssertLocateLED(config.locateLedGroupPath,
                                      config.locateLedControllerBusName,
                                      config.locateLedControllerPath, !request);
         }
@@ -295,9 +392,9 @@ void Nvme::setSSDLEDStatus(std::shared_ptr<phosphor::nvme::NvmeSSD> nvmeSSD,
     {
         // Drive is present but can not get data, turn on fault LED.
         log<level::ERR>("Drive status is good but can not get data.");
-        nvmeSSD->checkAssertFaultLED(config.locateLedGroupPath,
+        checkAssertFaultLED(config.locateLedGroupPath,
                                 config.faultLedGroupPath, true);
-        nvmeSSD->checkAssertLocateLED(config.locateLedGroupPath,
+        checkAssertLocateLED(config.locateLedGroupPath,
                                  config.locateLedControllerBusName,
                                  config.locateLedControllerPath, false);
     }
@@ -307,16 +404,17 @@ void Nvme::setSSDLEDStatus(std::shared_ptr<phosphor::nvme::NvmeSSD> nvmeSSD,
 
 void Nvme::read()
 {
+    std::string devPresentPath;
+    std::string devPwrGoodPath;
 
-    try
-    {
+    try{
         for (int i = 0; i < configs.size(); i++)
         {
             NVMeData nvmeData;
-            std::string devPresentPath =
+            devPresentPath =
                 GPIO_BASE_PATH + std::to_string(configs[i].presentPin) + "/value";
 
-            std::string devPwrGoodPath =
+            devPwrGoodPath =
                 GPIO_BASE_PATH + std::to_string(configs[i].pwrGoodPin) + "/value";
 
             auto iter = nvmes.find(std::to_string(configs[i].index));
@@ -368,16 +466,15 @@ void Nvme::read()
                     // Present pin is true but power good pin is false
                     log<level::ERR>(
                         "Present pin is true but power good pin is false");
-                    if (iter != nvmes.end())
-                    {
-                        iter->second->checkAssertFaultLED(
-                            configs[i].locateLedGroupPath,
-                            configs[i].faultLedGroupPath, true);
-                        iter->second->checkAssertLocateLED(
-                            configs[i].locateLedGroupPath,
-                            configs[i].locateLedControllerBusName,
-                            configs[i].locateLedControllerPath, false);
-                    }
+
+                    checkAssertFaultLED(
+                        configs[i].locateLedGroupPath,
+                        configs[i].faultLedGroupPath, true);
+                    checkAssertLocateLED(
+                        configs[i].locateLedGroupPath,
+                        configs[i].locateLedControllerBusName,
+                        configs[i].locateLedControllerPath, false);
+
                     nvmes.erase(std::to_string(configs[i].index));
                 }
             }
@@ -385,20 +482,18 @@ void Nvme::read()
             {
                 // Drive not present, remove nvme d-bus path and turn off fault and
                 // locate LED
-                if (iter != nvmes.end())
-                {
-                    iter->second->checkAssertFaultLED(configs[i].locateLedGroupPath,
-                                                    configs[i].faultLedGroupPath,
-                                                    false);
-                    iter->second->checkAssertLocateLED(
-                        configs[i].locateLedGroupPath,
-                        configs[i].locateLedControllerBusName,
-                        configs[i].locateLedControllerPath, false);
-                }
+
+                checkAssertFaultLED(configs[i].locateLedGroupPath,
+                                            configs[i].faultLedGroupPath,
+                                            false);
+                checkAssertLocateLED(
+                    configs[i].locateLedGroupPath,
+                    configs[i].locateLedControllerBusName,
+                    configs[i].locateLedControllerPath, false);
+
                 nvmes.erase(std::to_string(configs[i].index));
             }
         }
-
     }
     catch (const std::exception &e)
     {
