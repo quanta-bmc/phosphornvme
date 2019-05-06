@@ -19,3 +19,6 @@ nvme_main_CXX_FLAGS =  \
                 $(PHOSPHOR_DBUS_INTERFACES_CFLAGS) \
 	            $(SDBUSPLUS_CFLAGS) \
 	            $(PHOSPHOR_LOGGING_CFLAGS)
+
+nvmedir = $(sysconfdir)/nvme
+nvme_DATA = nvme_config.json

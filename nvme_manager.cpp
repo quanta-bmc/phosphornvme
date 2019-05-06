@@ -86,8 +86,8 @@ bool Nvme::getLEDGroupState(std::string &ledPath)
 
     }catch (const sdbusplus::exception::SdBusError& ex)
     {
-        log<level::ERR>("Call method fail: Error in get LED group status.",
-                        entry("ERROR=%s", ex.what()));
+        std::cerr << "Call method fail: Error in get LED group status. ERROR = " << ex.what() << std::endl;
+        std::cerr << "path = " << ledPath << std::endl;
     }
     return asserted;
 }
@@ -114,8 +114,8 @@ void Nvme::setFaultLED(const std::string &property, const T &value, std::string 
 
     }catch (const sdbusplus::exception::SdBusError& ex)
     {
-        log<level::ERR>("Call method fail: set fault LED Aasserted.",
-                        entry("ERROR=%s", ex.what()));
+        std::cerr << "Call method fail: set fault LED Aasserted. ERROR = " << ex.what() << std::endl;
+        std::cerr << "path = " << ledPath << std::endl;
         return ;
     }
 }
@@ -139,8 +139,8 @@ void Nvme::setLocateLED(const std::string& property, const T& value, std::string
 
     }catch (const sdbusplus::exception::SdBusError& ex)
     {
-        log<level::ERR>("Call method fail: set locate LED state.",
-                        entry("ERROR=%s", ex.what()));
+        std::cerr << "Call method fail: set locate LED state. ERROR = " << ex.what() << std::endl;
+        std::cerr << "path = " << locateLedPath << std::endl;
         return ;
     }
 }
@@ -174,7 +174,7 @@ bool getNVMeInfobyBusID(int busID, phosphor::nvme::Nvme::NVMeData &nvmeData)
 
     if (init == -1)
     {
-        log<level::ERR>("smbusInit fail!");
+        std::cerr << "smbusInit fail!" << std::endl;
 
         nvmeData.present = false;
 
@@ -186,7 +186,7 @@ bool getNVMeInfobyBusID(int busID, phosphor::nvme::Nvme::NVMeData &nvmeData)
 
     if (res_int < 0)
     {
-        log<level::ERR>("Send command 0 fail!");
+        std::cerr << "Send command code 0 fail!" << std::endl;
 
         smbus.smbusClose(busID);
         nvmeData.present = false;
@@ -200,7 +200,7 @@ bool getNVMeInfobyBusID(int busID, phosphor::nvme::Nvme::NVMeData &nvmeData)
 
     if (res_int < 0)
     {
-        log<level::ERR>("Send command 8 fail!");
+        std::cerr << "Send command code 8 fail!" << std::endl;
         smbus.smbusClose(busID);
         nvmeData.present = false;
         return nvmeData.present;
@@ -235,7 +235,7 @@ void Nvme::run()
     }
     catch (const std::exception &e)
     {
-        log<level::ERR>("Error in polling loop", entry("ERROR=%s", e.what()));
+        std::cerr << "Error in polling loop. ERROR = " << e.what() << std::endl;
     }
 }
 
@@ -244,13 +244,13 @@ Json parseSensorConfig()
     std::ifstream jsonFile(configFile);
     if (!jsonFile.is_open())
     {
-        log<level::ERR>("NVMe config JSON file not found");
+        std::cerr << "NVMe config JSON file not found" << std::endl;
     }
 
     auto data = Json::parse(jsonFile, nullptr, false);
     if (data.is_discarded())
     {
-        log<level::ERR>("NVMe config readings JSON parser failure");
+        std::cerr << "NVMe config readings JSON parser failure" << std::endl;
     }
 
     return data;
@@ -284,7 +284,7 @@ std::vector<phosphor::nvme::Nvme::NVMeConfig> getNvmeConfig()
         }
         else
         {
-            log<level::INFO>("Invalid NVMe config file, thresholds dosen't exist");
+            std::cerr << "Invalid NVMe config file, thresholds dosen't exist" << std::endl;
         }
 
         if (!readings.empty())
@@ -322,12 +322,12 @@ std::vector<phosphor::nvme::Nvme::NVMeConfig> getNvmeConfig()
         }
         else
         {
-            log<level::INFO>("Invalid NVMe config file, config dosen't exist");
+            std::cerr << "Invalid NVMe config file, config dosen't exist" << std::endl;
         }
     }
     catch (const Json::exception &e)
     {
-        log<level::DEBUG>("Json Exception caught.", entry("MSG:%s", e.what()));
+        std::cerr << "Json Exception caught. MSG: " << e.what() << std::endl;
     }
 
     return nvmeConfigs;
@@ -352,7 +352,7 @@ std::string Nvme::getValue(std::string fullPath)
         {
             --retries;
             std::this_thread::sleep_for(delay);
-            log<level::DEBUG>("Can not open gpio path", entry("MSG:%s", e.what()));
+            std::cerr << "Can not open gpio path MSG: " << e.what() << std::endl;
             continue;
         }
         break;
@@ -391,7 +391,7 @@ void Nvme::setSSDLEDStatus(std::shared_ptr<phosphor::nvme::NvmeSSD> nvmeSSD,
     else
     {
         // Drive is present but can not get data, turn on fault LED.
-        log<level::ERR>("Drive status is good but can not get data.");
+        std::cerr << "Drive status is good but can not get data. index = " << std::to_string(config.index) << std::endl;
         checkAssertFaultLED(config.locateLedGroupPath,
                                 config.faultLedGroupPath, true);
         checkAssertLocateLED(config.locateLedGroupPath,
@@ -407,7 +407,6 @@ void Nvme::read()
     std::string devPresentPath;
     std::string devPwrGoodPath;
 
-    try{
         for (int i = 0; i < configs.size(); i++)
         {
             NVMeData nvmeData;
@@ -430,6 +429,8 @@ void Nvme::read()
                     // can not find. create dbus
                     if (iter == nvmes.end())
                     {
+                        std::cerr << "SSD plug. index = "<< std::to_string(configs[i].index) << std::endl;
+
                         std::string objPath =
                             NVME_OBJ_PATH + std::to_string(configs[i].index);
                         auto nvmeSSD = std::make_shared<phosphor::nvme::NvmeSSD>(
@@ -464,8 +465,7 @@ void Nvme::read()
                 else
                 {
                     // Present pin is true but power good pin is false
-                    log<level::ERR>(
-                        "Present pin is true but power good pin is false");
+                    std::cerr << "Present pin is true but power good pin is false. index = "<< std::to_string(configs[i].index) << std::endl;
 
                     checkAssertFaultLED(
                         configs[i].locateLedGroupPath,
@@ -476,6 +476,7 @@ void Nvme::read()
                         configs[i].locateLedControllerPath, false);
 
                     nvmes.erase(std::to_string(configs[i].index));
+                    std::cerr << "Erase SSD from map and d-bus. index = "<< std::to_string(configs[i].index) << std::endl;
                 }
             }
             else
@@ -494,11 +495,6 @@ void Nvme::read()
                 nvmes.erase(std::to_string(configs[i].index));
             }
         }
-    }
-    catch (const std::exception &e)
-    {
-        log<level::ERR>("Error in read loop", entry("ERROR=%s", e.what()));
-    }
 }
 } // namespace nvme
 } // namespace phosphor
