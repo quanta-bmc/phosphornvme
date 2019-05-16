@@ -17,8 +17,6 @@ namespace nvme
 {
 
 using ValueIface = sdbusplus::xyz::openbmc_project::Sensor::server::Value;
-using InfoIface = sdbusplus::xyz::openbmc_project::Nvme::server::Status;
-using ItemIface = sdbusplus::xyz::openbmc_project::Inventory::server::Item;
 
 using CriticalInterface =
     sdbusplus::xyz::openbmc_project::Sensor::Threshold::server::Critical;
@@ -26,12 +24,8 @@ using CriticalInterface =
 using WarningInterface =
     sdbusplus::xyz::openbmc_project::Sensor::Threshold::server::Warning;
 
-using AssetIface =
-    sdbusplus::xyz::openbmc_project::Inventory::Decorator::server::Asset;
-
 using NvmeIfaces =
-    sdbusplus::server::object::object<ValueIface, InfoIface, ItemIface,
-                                      AssetIface, CriticalInterface, WarningInterface>;
+    sdbusplus::server::object::object<ValueIface, CriticalInterface, WarningInterface>;
 
 class NvmeSSD : public NvmeIfaces
 {
@@ -48,15 +42,7 @@ class NvmeSSD : public NvmeIfaces
     {
     }
 
-    void setPresent(const bool value);
-
-    void assertFaultLog(int smartWarning);
-
-    void setPropertiesToDbus(const u_int64_t value, const std::string vendorID,
-                             const std::string serialNumber,
-                             const std::string smartWarnings,
-                             const std::string statusFlags,
-                             const std::string driveLifeUsed);
+    void setSensorValueToDbus(const u_int64_t value);
     void checkSensorThreshold();
     void setSensorThreshold(uint64_t criticalHigh, uint64_t criticalLow,
                             uint64_t maxValue, uint64_t minValue);
