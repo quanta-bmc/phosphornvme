@@ -13,43 +13,6 @@ namespace nvme
 using namespace std;
 using namespace phosphor::logging;
 
-void NvmeSSD::assertFaultLog(int smartWarning)
-{
-    std::vector<bool> bits;
-
-    for (int i = 0; i < 5; i++)
-    {
-        if (((smartWarning >> i) & 1) == 0)
-            bits.push_back(true);
-        else
-            bits.push_back(false);
-
-        switch (i)
-        {
-            case 0:
-                InfoIface::capacityFault(bits[i]);
-                break;
-            case 1:
-                InfoIface::temperatureFault(bits[i]);
-                break;
-            case 2:
-                InfoIface::degradesFault(bits[i]);
-                break;
-            case 3:
-                InfoIface::mediaFault(bits[i]);
-                break;
-            case 4:
-                InfoIface::backupDeviceFault(bits[i]);
-                break;
-        }
-    }
-}
-
-void NvmeSSD::setPresent(const bool value)
-{
-    ItemIface::present(value);
-}
-
 void NvmeSSD::checkSensorThreshold()
 {
     uint64_t value = ValueIface::value();
@@ -77,20 +40,9 @@ void NvmeSSD::setSensorThreshold(uint64_t criticalHigh, uint64_t criticalLow,
     ValueIface::minValue(minValue);
 }
 
-void NvmeSSD::setPropertiesToDbus(const u_int64_t value,
-                                  const std::string vendorID,
-                                  const std::string serialNumber,
-                                  const std::string smartWarnings,
-                                  const std::string statusFlags,
-                                  const std::string driveLifeUsed
-                                  )
+void NvmeSSD::setSensorValueToDbus(const u_int64_t value)
 {
     ValueIface::value(value);
-    AssetIface::manufacturer(vendorID);
-    AssetIface::serialNumber(serialNumber);
-    InfoIface::smartWarnings(smartWarnings);
-    InfoIface::statusFlags(statusFlags);
-    InfoIface::driveLifeUsed(driveLifeUsed);
 }
 
 } // namespace nvme

@@ -78,6 +78,12 @@ class Nvme
 
     bool getLEDGroupState(std::string &ledPath);
 
+    template <typename T>
+    void setInventoryParm(std::string &objPath, const std::string &interface, const std::string &property, const T &value);
+
+    void setNvmeInventoryProperties(bool present, phosphor::nvme::Nvme::NVMeData nvmeData, std::string inventoryPath);
+    void assertFaultLog(int smartWarning, std::string inventoryPath);
+
   private:
     sdbusplus::bus::bus &bus;
 

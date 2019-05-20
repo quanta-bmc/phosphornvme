@@ -57,6 +57,31 @@ AC_ARG_VAR(LED_CONTROLLER_IFACE, [The LED controller interface])
 AS_IF([test "x$LED_CONTROLLER_IFACE" == "x"], [LED_CONTROLLER_IFACE="xyz.openbmc_project.Led.Physical"])
 AC_DEFINE_UNQUOTED([LED_CONTROLLER_IFACE], ["$LED_CONTROLLER_IFACE"], [The LED controller interface])
 
+# item interface
+AC_ARG_VAR(ITEM_IFACE, [The item interface])
+AS_IF([test "x$ITEM_IFACE" == "x"], [ITEM_IFACE="xyz.openbmc_project.Inventory.Item"])
+AC_DEFINE_UNQUOTED([ITEM_IFACE], ["$ITEM_IFACE"], [The item interface])
+
+# NVMe status interface
+AC_ARG_VAR(NVME_STATUS_IFACE, [The NVMe status interface])
+AS_IF([test "x$NVME_STATUS_IFACE" == "x"], [NVME_STATUS_IFACE="xyz.openbmc_project.Nvme.Status"])
+AC_DEFINE_UNQUOTED([NVME_STATUS_IFACE], ["$NVME_STATUS_IFACE"], [The NVMe status interface])
+
+# Asset interface
+AC_ARG_VAR(ASSET_IFACE, [The Asset interface])
+AS_IF([test "x$ASSET_IFACE" == "x"], [ASSET_IFACE="xyz.openbmc_project.Inventory.Decorator.Asset"])
+AC_DEFINE_UNQUOTED([ASSET_IFACE], ["$ASSET_IFACE"], [The Asset interface])
+
+# Inventory dbus busname
+AC_ARG_VAR(INVENTORY_BUSNAME, [The inventory busname])
+AS_IF([test "x$INVENTORY_BUSNAME" == "x"], [INVENTORY_BUSNAME="xyz.openbmc_project.Inventory.Manager"])
+AC_DEFINE_UNQUOTED([INVENTORY_BUSNAME], ["$INVENTORY_BUSNAME"], [The inventory busname])
+
+# Inventory path
+AC_ARG_VAR(INVENTORY_PATH, [The inventory path])
+AS_IF([test "x$INVENTORY_PATH" == "x"], [INVENTORY_PATH="/xyz/openbmc_project/inventory/system/chassis/motherboard/nvme"])
+AC_DEFINE_UNQUOTED([INVENTORY_PATH], ["$INVENTORY_PATH"], [The inventory path])
+
 LT_INIT # Required for systemd linking
 
 # Create configured output
