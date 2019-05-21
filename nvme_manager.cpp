@@ -227,7 +227,7 @@ bool getNVMeInfobyBusID(int busID, phosphor::nvme::Nvme::NVMeData &nvmeData)
     nvmeData.smartWarnings = "";
     nvmeData.statusFlags = "";
     nvmeData.driveLifeUsed = "";
-    nvmeData.sensorValue = 0;
+    nvmeData.sensorValue = 129;
 
     phosphor::smbus::Smbus smbus;
 
