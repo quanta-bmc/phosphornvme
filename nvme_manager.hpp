@@ -42,13 +42,14 @@ class Nvme
     };
 
     struct NVMeData {
-      bool present;
-      std::string vendor;
-      std::string serialNumber;
-      std::string smartWarnings;
-      std::string statusFlags;
-      std::string driveLifeUsed;
-      u_int64_t sensorValue;
+      bool present; /* Whether or not the nvme is present  */
+      std::string vendor; /* The nvme manufacturer  */
+      std::string serialNumber; /* The nvme serial number  */
+      std::string smartWarnings; /* Indicates smart warnings for the state  */
+      std::string statusFlags; /* Indicates the status of the drives  */
+      std::string driveLifeUsed; /* A vendor specific estimate of the percentage  */
+      u_int64_t sensorValue;/* Sensor value, if sensor value didn't be update, means sensor failure,
+                               default set to 129(0x81) accroding to NVMe-MI SPEC*/
     };
 
     void run();
