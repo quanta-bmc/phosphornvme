@@ -85,8 +85,8 @@
         {
             "criticalHigh":70,
             "criticalLow":0,
-            "maxValue":70,
-            "minValue":0
+            "maxValue":127,
+            "minValue":-128
         }
     ]
 }
