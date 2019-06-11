@@ -8,7 +8,7 @@ information to `xyz/openbmc_project/Nvme/Status.interface.yaml`,
 `xyz/openbmc_project/Sensor/Value.interface.yaml` and
 other interfaces in `xyz.openbmc_project.Inventory.Manager`.
 
-#### General usage
+#### General usage   
 
 The service `xyz.openbmc_project.nvme.manager` provides object on D-Bus:
 
