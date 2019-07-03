@@ -1,10 +1,10 @@
 #include "nvme_manager.hpp"
+
 #include <iostream>
 #include <phosphor-logging/elog-errors.hpp>
 #include <phosphor-logging/log.hpp>
 #include <sstream>
 #include <string>
-
 
 namespace phosphor
 {
