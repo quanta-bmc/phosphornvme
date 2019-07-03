@@ -1,5 +1,7 @@
 #include "config.h"
+
 #include "nvmes.hpp"
+
 #include <sdbusplus/bus.hpp>
 #include <sdbusplus/server.hpp>
 #include <sdbusplus/server/object.hpp>
@@ -16,12 +18,14 @@ class Nvme
 {
   public:
     Nvme() = delete;
-    Nvme(const Nvme &) = delete;
-    Nvme &operator=(const Nvme &) = delete;
-    Nvme(Nvme &&) = delete;
-    Nvme &operator=(Nvme &&) = delete;
+    Nvme(const Nvme&) = delete;
+    Nvme& operator=(const Nvme&) = delete;
+    Nvme(Nvme&&) = delete;
+    Nvme& operator=(Nvme&&) = delete;
 
-    Nvme(sdbusplus::bus::bus &bus, const char *objPath) : bus(bus), _event(sdeventplus::Event::get_default()), _timer(_event, std::bind(&Nvme::read, this)), _objPath(objPath)
+    Nvme(sdbusplus::bus::bus& bus, const char* objPath) :
+        bus(bus), _event(sdeventplus::Event::get_default()),
+        _timer(_event, std::bind(&Nvme::read, this)), _objPath(objPath)
     {
     }
 
@@ -41,15 +45,18 @@ class Nvme
         uint64_t minValue;
     };
 
-    struct NVMeData {
-      bool present; /* Whether or not the nvme is present  */
-      std::string vendor; /* The nvme manufacturer  */
-      std::string serialNumber; /* The nvme serial number  */
-      std::string smartWarnings; /* Indicates smart warnings for the state  */
-      std::string statusFlags; /* Indicates the status of the drives  */
-      std::string driveLifeUsed; /* A vendor specific estimate of the percentage  */
-      u_int64_t sensorValue;/* Sensor value, if sensor value didn't be update, means sensor failure,
-                               default set to 129(0x81) accroding to NVMe-MI SPEC*/
+    struct NVMeData
+    {
+        bool present;              /* Whether or not the nvme is present  */
+        std::string vendor;        /* The nvme manufacturer  */
+        std::string serialNumber;  /* The nvme serial number  */
+        std::string smartWarnings; /* Indicates smart warnings for the state  */
+        std::string statusFlags;   /* Indicates the status of the drives  */
+        std::string
+            driveLifeUsed; /* A vendor specific estimate of the percentage  */
+        u_int64_t sensorValue; /* Sensor value, if sensor value didn't be
+                                  update, means sensor failure, default set to
+                                  129(0x81) accroding to NVMe-MI SPEC*/
     };
 
     void run();
@@ -63,30 +70,33 @@ class Nvme
                          phosphor::nvme::Nvme::NVMeData nvmeData);
 
     template <typename T>
-    void setFaultLED(const std::string &property, const T &value,
-                     std::string &ledPath);
+    void setFaultLED(const std::string& property, const T& value,
+                     std::string& ledPath);
 
     template <typename T>
-    void setLocateLED(const std::string &property, const T &value,
-                      std::string &locateLedBusName,
-                      std::string &locateLedPath);
+    void setLocateLED(const std::string& property, const T& value,
+                      std::string& locateLedBusName,
+                      std::string& locateLedPath);
 
-    void checkAssertFaultLED(std::string &locateLedGroupPath,
-                             std::string &ledPath, bool request);
-    void checkAssertLocateLED(std::string &ledPath,
-                              std::string &locateLedBusName,
-                              std::string &locateLedPath, bool ispresent);
+    void checkAssertFaultLED(std::string& locateLedGroupPath,
+                             std::string& ledPath, bool request);
+    void checkAssertLocateLED(std::string& ledPath,
+                              std::string& locateLedBusName,
+                              std::string& locateLedPath, bool ispresent);
 
-    bool getLEDGroupState(std::string &ledPath);
+    bool getLEDGroupState(std::string& ledPath);
 
     template <typename T>
-    void setInventoryParm(std::string &objPath, const std::string &interface, const std::string &property, const T &value);
+    void setInventoryParm(std::string& objPath, const std::string& interface,
+                          const std::string& property, const T& value);
 
-    void setNvmeInventoryProperties(bool present, phosphor::nvme::Nvme::NVMeData nvmeData, std::string inventoryPath);
+    void setNvmeInventoryProperties(bool present,
+                                    phosphor::nvme::Nvme::NVMeData nvmeData,
+                                    std::string inventoryPath);
     void assertFaultLog(int smartWarning, std::string inventoryPath);
 
   private:
-    sdbusplus::bus::bus &bus;
+    sdbusplus::bus::bus& bus;
 
     sdeventplus::Event _event;
     /** @brief Read Timer */
@@ -94,7 +104,6 @@ class Nvme
 
     void init();
     void read();
-
 };
 } // namespace nvme
 } // namespace phosphor

@@ -1,4 +1,5 @@
 #include "config.h"
+
 #include <sdbusplus/bus.hpp>
 #include <sdbusplus/server.hpp>
 #include <sdeventplus/clock.hpp>
@@ -25,19 +26,20 @@ using WarningInterface =
     sdbusplus::xyz::openbmc_project::Sensor::Threshold::server::Warning;
 
 using NvmeIfaces =
-    sdbusplus::server::object::object<ValueIface, CriticalInterface, WarningInterface>;
+    sdbusplus::server::object::object<ValueIface, CriticalInterface,
+                                      WarningInterface>;
 
 class NvmeSSD : public NvmeIfaces
 {
   public:
     NvmeSSD() = delete;
-    NvmeSSD(const NvmeSSD &) = delete;
-    NvmeSSD &operator=(const NvmeSSD &) = delete;
-    NvmeSSD(NvmeSSD &&) = delete;
-    NvmeSSD &operator=(NvmeSSD &&) = delete;
+    NvmeSSD(const NvmeSSD&) = delete;
+    NvmeSSD& operator=(const NvmeSSD&) = delete;
+    NvmeSSD(NvmeSSD&&) = delete;
+    NvmeSSD& operator=(NvmeSSD&&) = delete;
     virtual ~NvmeSSD() = default;
 
-    NvmeSSD(sdbusplus::bus::bus &bus, const char *objPath) :
+    NvmeSSD(sdbusplus::bus::bus& bus, const char* objPath) :
         NvmeIfaces(bus, objPath), bus(bus)
     {
     }
@@ -48,7 +50,7 @@ class NvmeSSD : public NvmeIfaces
                             uint64_t maxValue, uint64_t minValue);
 
   private:
-    sdbusplus::bus::bus &bus;
+    sdbusplus::bus::bus& bus;
 };
 } // namespace nvme
 } // namespace phosphor
