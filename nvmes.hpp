@@ -5,9 +5,6 @@
 #include <sdeventplus/clock.hpp>
 #include <sdeventplus/event.hpp>
 #include <sdeventplus/utility/timer.hpp>
-#include <xyz/openbmc_project/Inventory/Decorator/Asset/server.hpp>
-#include <xyz/openbmc_project/Inventory/Item/server.hpp>
-#include <xyz/openbmc_project/Nvme/Status/server.hpp>
 #include <xyz/openbmc_project/Sensor/Threshold/Critical/server.hpp>
 #include <xyz/openbmc_project/Sensor/Threshold/Warning/server.hpp>
 #include <xyz/openbmc_project/Sensor/Value/server.hpp>
@@ -39,13 +36,21 @@ class NvmeSSD : public NvmeIfaces
     NvmeSSD& operator=(NvmeSSD&&) = delete;
     virtual ~NvmeSSD() = default;
 
+    /** @brief Constructs NvmeSSD
+     *
+     * @param[in] bus     - Handle to system dbus
+     * @param[in] objPath - The Dbus path of nvme
+     */
     NvmeSSD(sdbusplus::bus::bus& bus, const char* objPath) :
         NvmeIfaces(bus, objPath), bus(bus)
     {
     }
 
+    /** @brief Set sensor value temperature to nvme D-bus  */
     void setSensorValueToDbus(const u_int64_t value);
+    /** @brief Check if sensor value higher or lower threshold */
     void checkSensorThreshold();
+    /** @brief Set Sensor Threshold to D-bus at beginning */
     void setSensorThreshold(uint64_t criticalHigh, uint64_t criticalLow,
                             uint64_t maxValue, uint64_t minValue);
 

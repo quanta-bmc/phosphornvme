@@ -29,7 +29,7 @@ int main(void)
 
     sdbusplus::server::manager::manager objManager(bus, NVME_OBJ_PATH_ROOT);
 
-    phosphor::nvme::Nvme objMgr(bus, NVME_OBJ_PATH_ROOT);
+    phosphor::nvme::Nvme objMgr(bus);
 
     bus.request_name(NVME_REQUEST_NAME);
 
