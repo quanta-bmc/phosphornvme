@@ -87,8 +87,9 @@ struct i2c_msg
  */
 #define I2C_SMBUS_BLOCK_MAX 32 /* As specified in SMBus standard */
 #define I2C_DATA_MAX 256
-#define I2C_SMBUS_I2C_BLOCK_MAX 32 /* Not specified but we use same structure  \
-                                    */
+#define I2C_SMBUS_I2C_BLOCK_MAX                                                \
+    32 /* Not specified but we use same structure                              \
+        */
 union i2c_smbus_data
 {
     __u8 byte;
@@ -434,8 +435,6 @@ static inline __s32 i2c_master_write(int file, __u8 slave_addr, __u8 tx_len,
     struct i2c_rdwr_ioctl_data msgst;
     struct i2c_msg msg;
     int ret;
-    int status;
-    __u8 partial_pec = 0;
 
     msg.addr = slave_addr & 0xFF;
     msg.flags = 0;

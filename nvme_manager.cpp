@@ -21,7 +21,6 @@
 #define IS_PRESENT "0"
 #define POWERGD "1"
 
-static int fd[MAX_I2C_BUS] = {0};
 static constexpr auto configFile = "/etc/nvme/nvme_config.json";
 auto retries = 3;
 static constexpr auto delay = std::chrono::milliseconds{100};
@@ -249,6 +248,41 @@ void Nvme::setLocateLED(const std::string& property, const T& value,
     }
 }
 
+void Nvme::setSSDLEDStatus(phosphor::nvme::Nvme::NVMeConfig config,
+                           bool success,
+                           phosphor::nvme::Nvme::NVMeData nvmeData)
+{
+    if (success)
+    {
+        if (!nvmeData.smartWarnings.empty())
+        {
+            std::string inventoryPath =
+                INVENTORY_PATH + std::to_string(config.index);
+            assertFaultLog(std::stoi(nvmeData.smartWarnings, 0, 16),
+                           inventoryPath);
+            auto request = (strcmp(nvmeData.smartWarnings.c_str(), "ff") == 0)
+                               ? false
+                               : true;
+            checkAssertFaultLED(config.locateLedGroupPath,
+                                config.faultLedGroupPath, request);
+            checkAssertLocateLED(config.locateLedGroupPath,
+                                 config.locateLedControllerBusName,
+                                 config.locateLedControllerPath, !request);
+        }
+    }
+    else
+    {
+        // Drive is present but can not get data, turn on fault LED.
+        std::cerr << "Drive status is good but can not get data. index = "
+                  << std::to_string(config.index) << std::endl;
+        checkAssertFaultLED(config.locateLedGroupPath, config.faultLedGroupPath,
+                            true);
+        checkAssertLocateLED(config.locateLedGroupPath,
+                             config.locateLedControllerBusName,
+                             config.locateLedControllerPath, false);
+    }
+}
+
 std::string intToHex(int input)
 {
     std::stringstream tmp;
@@ -257,6 +291,7 @@ std::string intToHex(int input)
     return tmp.str();
 }
 
+/** @brief Get NVMe info over smbus  */
 bool getNVMeInfobyBusID(int busID, phosphor::nvme::Nvme::NVMeData& nvmeData)
 {
     nvmeData.present = true;
@@ -272,7 +307,8 @@ bool getNVMeInfobyBusID(int busID, phosphor::nvme::Nvme::NVMeData& nvmeData)
     unsigned char rsp_data_command_0[8] = {0};
     unsigned char rsp_data_command_8[24] = {0};
 
-    uint8_t in_data = 0; // command code
+    // command code
+    uint8_t in_data = 0;
 
     auto init = smbus.smbusInit(busID);
 
@@ -297,7 +333,8 @@ bool getNVMeInfobyBusID(int busID, phosphor::nvme::Nvme::NVMeData& nvmeData)
         return nvmeData.present;
     }
 
-    in_data = 8; // command code
+    // command code
+    in_data = 8;
 
     res_int = smbus.SendSmbusRWBlockCmdRAW(busID, NVME_SSD_SLAVE_ADDRESS,
                                            &in_data, 1, rsp_data_command_8);
@@ -312,9 +349,11 @@ bool getNVMeInfobyBusID(int busID, phosphor::nvme::Nvme::NVMeData& nvmeData)
 
     nvmeData.vendor =
         intToHex(rsp_data_command_8[1]) + " " + intToHex(rsp_data_command_8[2]);
-    for (int i = 3; i < 23; i++) // i: serialNumber position
+
+    // offset: serialNumber position
+    for (int offset = 3; offset < 23; offset++)
     {
-        nvmeData.serialNumber += static_cast<char>(rsp_data_command_8[i]);
+        nvmeData.serialNumber += static_cast<char>(rsp_data_command_8[offset]);
     }
 
     nvmeData.statusFlags = intToHex(rsp_data_command_0[1]);
@@ -343,6 +382,7 @@ void Nvme::run()
     }
 }
 
+/** @brief Parsing NVMe config JSON file  */
 Json parseSensorConfig()
 {
     std::ifstream jsonFile(configFile);
@@ -360,6 +400,7 @@ Json parseSensorConfig()
     return data;
 }
 
+/** @brief Obtain the initial configuration value of NVMe  */
 std::vector<phosphor::nvme::Nvme::NVMeConfig> getNvmeConfig()
 {
 
@@ -439,7 +480,7 @@ std::vector<phosphor::nvme::Nvme::NVMeConfig> getNvmeConfig()
     return nvmeConfigs;
 }
 
-std::string Nvme::getValue(std::string fullPath)
+std::string Nvme::getGPIOValueOfNvme(std::string fullPath)
 {
     std::string val;
     std::ifstream ifs;
@@ -475,49 +516,14 @@ void Nvme::init()
     configs = getNvmeConfig();
 }
 
-void Nvme::setSSDLEDStatus(std::shared_ptr<phosphor::nvme::NvmeSSD> nvmeSSD,
-                           phosphor::nvme::Nvme::NVMeConfig config,
-                           bool success,
-                           phosphor::nvme::Nvme::NVMeData nvmeData)
-{
-    if (success)
-    {
-        if (!nvmeData.smartWarnings.empty())
-        {
-            std::string inventoryPath =
-                INVENTORY_PATH + std::to_string(config.index);
-            assertFaultLog(std::stoi(nvmeData.smartWarnings, 0, 16),
-                           inventoryPath);
-            auto request = (strcmp(nvmeData.smartWarnings.c_str(), "ff") == 0)
-                               ? false
-                               : true;
-            checkAssertFaultLED(config.locateLedGroupPath,
-                                config.faultLedGroupPath, request);
-            checkAssertLocateLED(config.locateLedGroupPath,
-                                 config.locateLedControllerBusName,
-                                 config.locateLedControllerPath, !request);
-        }
-    }
-    else
-    {
-        // Drive is present but can not get data, turn on fault LED.
-        std::cerr << "Drive status is good but can not get data. index = "
-                  << std::to_string(config.index) << std::endl;
-        checkAssertFaultLED(config.locateLedGroupPath, config.faultLedGroupPath,
-                            true);
-        checkAssertLocateLED(config.locateLedGroupPath,
-                             config.locateLedControllerBusName,
-                             config.locateLedControllerPath, false);
-    }
-}
-
+/** @brief Monitor NVMe drives every one second  */
 void Nvme::read()
 {
     std::string devPresentPath;
     std::string devPwrGoodPath;
     std::string inventoryPath;
 
-    for (int i = 0; i < configs.size(); i++)
+    for (int i = 0; i < (int)(configs.size()); i++)
     {
         NVMeData nvmeData;
         devPresentPath =
@@ -530,11 +536,11 @@ void Nvme::read()
 
         auto iter = nvmes.find(std::to_string(configs[i].index));
 
-        if (getValue(devPresentPath) == IS_PRESENT)
+        if (getGPIOValueOfNvme(devPresentPath) == IS_PRESENT)
         {
             // Drive status is good, update value or create d-bus and update
             // value.
-            if (getValue(devPwrGoodPath) == POWERGD)
+            if (getGPIOValueOfNvme(devPwrGoodPath) == POWERGD)
             {
                 // get NVMe information through i2c by busID.
                 auto success = getNVMeInfobyBusID(configs[i].busID, nvmeData);
@@ -557,16 +563,14 @@ void Nvme::read()
                         configs[i].maxValue, configs[i].minValue);
 
                     nvmeSSD->checkSensorThreshold();
-                    setSSDLEDStatus(nvmeSSD, configs[i], success, nvmeData);
+                    setSSDLEDStatus(configs[i], success, nvmeData);
                 }
                 else
                 {
                     setNvmeInventoryProperties(true, nvmeData, inventoryPath);
                     iter->second->setSensorValueToDbus(nvmeData.sensorValue);
-
                     iter->second->checkSensorThreshold();
-                    setSSDLEDStatus(iter->second, configs[i], success,
-                                    nvmeData);
+                    setSSDLEDStatus(configs[i], success, nvmeData);
                 }
             }
             else
@@ -577,7 +581,6 @@ void Nvme::read()
                 std::cerr << "Present pin is true but power good pin is false. "
                              "index = "
                           << std::to_string(configs[i].index) << std::endl;
-
                 checkAssertFaultLED(configs[i].locateLedGroupPath,
                                     configs[i].faultLedGroupPath, true);
                 checkAssertLocateLED(configs[i].locateLedGroupPath,
