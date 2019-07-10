@@ -83,7 +83,7 @@
     ],
     "threshold": [
         {
-            "criticalHigh": 70,
+            "criticalHigh": 72,
             "criticalLow": 0,
             "maxValue": 127,
             "minValue": -128
