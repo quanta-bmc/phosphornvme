@@ -2,6 +2,7 @@
 
 #include "nvmes.hpp"
 
+#include <iostream>
 #include <sdbusplus/bus.hpp>
 #include <sdbusplus/server.hpp>
 #include <sdbusplus/server/object.hpp>
@@ -141,6 +142,8 @@ class Nvme
     /** @brief Set five fault states by smartWarning */
     void assertFaultLog(int smartWarning, std::string inventoryPath);
 
+    void createNVMeInventory();
+
   private:
     /** @brief sdbusplus bus client connection. */
     sdbusplus::bus::bus& bus;
@@ -153,6 +156,29 @@ class Nvme
     void init();
     /** @brief Monitor NVMe drives every one second  */
     void read();
+
+    /** @brief Invoke inventory manager notify method. */
+    template <typename... Args>
+    static auto
+        CallMethodNotify(sdbusplus::bus::bus& bus, const std::string& busName,
+                         const std::string& path, const std::string& interface,
+                         const std::string& method, Args&&... args)
+    {
+        auto reqMsg = bus.new_method_call(busName.c_str(), path.c_str(),
+                                          interface.c_str(), method.c_str());
+        reqMsg.append(std::forward<Args>(args)...);
+        try
+        {
+            auto respMsg = bus.call(reqMsg);
+        }
+        catch (const std::exception& e)
+        {
+            std::cerr
+                << "Call method fail: Call inventory manager notify. ERROR = "
+                << e.what() << std::endl;
+            return;
+        }
+    }
 };
 } // namespace nvme
 } // namespace phosphor

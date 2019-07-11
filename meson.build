@@ -39,7 +39,9 @@ conf_data.set('ITEM_IFACE', '"xyz.openbmc_project.Inventory.Item"')
 conf_data.set('NVME_STATUS_IFACE', '"xyz.openbmc_project.Nvme.Status"')
 conf_data.set('ASSET_IFACE', '"xyz.openbmc_project.Inventory.Decorator.Asset"')
 conf_data.set('INVENTORY_BUSNAME', '"xyz.openbmc_project.Inventory.Manager"')
-conf_data.set('INVENTORY_PATH', '"/xyz/openbmc_project/inventory/system/chassis/motherboard/nvme"')
+conf_data.set('NVME_INVENTORY_PATH', '"/xyz/openbmc_project/inventory/system/chassis/motherboard/nvme"')
+conf_data.set('INVENTORY_NAMESPACE', '"/xyz/openbmc_project/inventory"')
+conf_data.set('INVENTORY_MANAGER_IFACE', '"xyz.openbmc_project.Inventory.Manager"')
 
 configure_file(output : 'config.h',
                configuration : conf_data)
