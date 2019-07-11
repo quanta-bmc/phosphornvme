@@ -5,9 +5,10 @@
 
 #include <experimental/filesystem>
 #include <fstream>
-#include <iostream>
+#include <map>
 #include <phosphor-logging/elog-errors.hpp>
 #include <phosphor-logging/log.hpp>
+#include <sdbusplus/message.hpp>
 #include <sstream>
 #include <string>
 #include <xyz/openbmc_project/Led/Physical/server.hpp>
@@ -15,7 +16,7 @@
 #include "i2c-dev.h"
 
 #define MAX_I2C_BUS 30
-#define MONITOR_INTERVAL_SENCODS 1
+#define MONITOR_INTERVAL_SECONDS 1
 #define NVME_SSD_SLAVE_ADDRESS 0x6a
 #define GPIO_BASE_PATH "/sys/class/gpio/gpio"
 #define IS_PRESENT "0"
@@ -257,7 +258,7 @@ void Nvme::setSSDLEDStatus(phosphor::nvme::Nvme::NVMeConfig config,
         if (!nvmeData.smartWarnings.empty())
         {
             std::string inventoryPath =
-                INVENTORY_PATH + std::to_string(config.index);
+                NVME_INVENTORY_PATH + std::to_string(config.index);
             assertFaultLog(std::stoi(nvmeData.smartWarnings, 0, 16),
                            inventoryPath);
             auto request = (strcmp(nvmeData.smartWarnings.c_str(), "ff") == 0)
@@ -373,7 +374,7 @@ void Nvme::run()
     std::function<void()> callback(std::bind(&Nvme::read, this));
     try
     {
-        u_int64_t interval = MONITOR_INTERVAL_SENCODS * 1000000;
+        u_int64_t interval = MONITOR_INTERVAL_SECONDS * 1000000;
         _timer.restart(std::chrono::microseconds(interval));
     }
     catch (const std::exception& e)
@@ -510,10 +511,34 @@ std::string Nvme::getGPIOValueOfNvme(std::string fullPath)
     return val;
 }
 
+void Nvme::createNVMeInventory()
+{
+    using Properties =
+        std::map<std::string, sdbusplus::message::variant<std::string, bool>>;
+    using Interfaces = std::map<std::string, Properties>;
+
+    std::string inventoryPath;
+    std::map<sdbusplus::message::object_path, Interfaces> obj;
+
+    for (int i = 0; i < (int)(configs.size()); i++)
+    {
+        inventoryPath = "/system/chassis/motherboard/nvme" +
+                        std::to_string(configs[i].index);
+
+        obj = {{
+            inventoryPath,
+            {{ITEM_IFACE, {}}, {NVME_STATUS_IFACE, {}}, {ASSET_IFACE, {}}},
+        }};
+        CallMethodNotify(bus, INVENTORY_BUSNAME, INVENTORY_NAMESPACE,
+                         INVENTORY_MANAGER_IFACE, "Notify", obj);
+    }
+}
+
 void Nvme::init()
 {
     // read json file
     configs = getNvmeConfig();
+    createNVMeInventory();
 }
 
 /** @brief Monitor NVMe drives every one second  */
@@ -532,7 +557,7 @@ void Nvme::read()
         devPwrGoodPath =
             GPIO_BASE_PATH + std::to_string(configs[i].pwrGoodPin) + "/value";
 
-        inventoryPath = INVENTORY_PATH + std::to_string(configs[i].index);
+        inventoryPath = NVME_INVENTORY_PATH + std::to_string(configs[i].index);
 
         auto iter = nvmes.find(std::to_string(configs[i].index));
 
