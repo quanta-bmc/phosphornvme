@@ -411,6 +411,8 @@ std::vector<phosphor::nvme::Nvme::NVMeConfig> getNvmeConfig()
     uint64_t criticalLow = 0;
     uint64_t maxValue = 0;
     uint64_t minValue = 0;
+    uint64_t warningHigh = 0;
+    uint64_t warningLow = 0;
 
     try
     {
@@ -426,6 +428,8 @@ std::vector<phosphor::nvme::Nvme::NVMeConfig> getNvmeConfig()
                 criticalLow = instance.value("criticalLow", 0);
                 maxValue = instance.value("maxValue", 0);
                 minValue = instance.value("minValue", 0);
+                warningHigh = instance.value("warningHigh", 0);
+                warningLow = instance.value("warningLow", 0);
             }
         }
         else
@@ -462,6 +466,8 @@ std::vector<phosphor::nvme::Nvme::NVMeConfig> getNvmeConfig()
                 nvmeConfig.locateLedGroupPath = locateLedGroupPath;
                 nvmeConfig.criticalHigh = criticalHigh;
                 nvmeConfig.criticalLow = criticalLow;
+                nvmeConfig.warningHigh = warningHigh;
+                nvmeConfig.warningLow = warningLow;
                 nvmeConfig.maxValue = maxValue;
                 nvmeConfig.minValue = minValue;
                 nvmeConfigs.push_back(nvmeConfig);
@@ -585,7 +591,8 @@ void Nvme::read()
                     nvmeSSD->setSensorValueToDbus(nvmeData.sensorValue);
                     nvmeSSD->setSensorThreshold(
                         configs[i].criticalHigh, configs[i].criticalLow,
-                        configs[i].maxValue, configs[i].minValue);
+                        configs[i].maxValue, configs[i].minValue,
+                        configs[i].warningHigh, configs[i].warningLow);
 
                     nvmeSSD->checkSensorThreshold();
                     setSSDLEDStatus(configs[i], success, nvmeData);

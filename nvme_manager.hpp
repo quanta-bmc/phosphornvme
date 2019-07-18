@@ -55,6 +55,8 @@ class Nvme
         uint64_t criticalLow;
         uint64_t maxValue;
         uint64_t minValue;
+        uint64_t warningHigh;
+        uint64_t warningLow;
     };
 
     /**

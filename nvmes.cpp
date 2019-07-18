@@ -18,6 +18,8 @@ void NvmeSSD::checkSensorThreshold()
     uint64_t value = ValueIface::value();
     uint64_t criticalHigh = CriticalInterface::criticalHigh();
     uint64_t criticalLow = CriticalInterface::criticalLow();
+    uint64_t warningHigh = WarningInterface::warningHigh();
+    uint64_t warningLow = WarningInterface::warningLow();
 
     if (value > criticalHigh)
         CriticalInterface::criticalAlarmHigh(true);
@@ -28,14 +30,29 @@ void NvmeSSD::checkSensorThreshold()
         CriticalInterface::criticalAlarmLow(true);
     else
         CriticalInterface::criticalAlarmLow(false);
+
+    if (value > warningHigh)
+        WarningInterface::warningAlarmHigh(true);
+    else
+        WarningInterface::warningAlarmHigh(false);
+
+    if (value < warningLow)
+        WarningInterface::warningAlarmLow(true);
+    else
+        WarningInterface::warningAlarmLow(false);
 }
 
 void NvmeSSD::setSensorThreshold(uint64_t criticalHigh, uint64_t criticalLow,
-                                 uint64_t maxValue, uint64_t minValue)
+                                 uint64_t maxValue, uint64_t minValue,
+                                 uint64_t warningHigh, uint64_t warningLow)
 {
 
     CriticalInterface::criticalHigh(criticalHigh);
     CriticalInterface::criticalLow(criticalLow);
+
+    WarningInterface::warningHigh(warningHigh);
+    WarningInterface::warningLow(warningLow);
+
     ValueIface::maxValue(maxValue);
     ValueIface::minValue(minValue);
 }
