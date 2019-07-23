@@ -1,8 +1,8 @@
 #include "config.h"
 
 #include "nvmes.hpp"
+#include "sdbusplus.hpp"
 
-#include <iostream>
 #include <sdbusplus/bus.hpp>
 #include <sdbusplus/server.hpp>
 #include <sdbusplus/server/object.hpp>
@@ -30,7 +30,7 @@ class Nvme
     /** @brief Constructs Nvme
      *
      * @param[in] bus     - Handle to system dbus
-     * @param[in] objPath - The Dbus path of nvme
+     * @param[in] objPath - The dbus path of nvme
      */
     Nvme(sdbusplus::bus::bus& bus) :
         bus(bus), _event(sdeventplus::Event::get_default()),
@@ -82,67 +82,35 @@ class Nvme
     void run();
 
     /** @brief Get GPIO value of nvme by sysfs */
-    std::string getGPIOValueOfNvme(std::string);
+    std::string getGPIOValueOfNvme(const std::string& fullPath);
     /** @brief Map of the object NvmeSSD */
     std::unordered_map<std::string, std::shared_ptr<phosphor::nvme::NvmeSSD>>
         nvmes;
 
-    /** @brief Set SDD locate and fault LED status
+    /** @brief Set locate and fault LED status of SSD
      *
      * @param[in] config - Nvme configure data
-     * @param[in] success - The Dbus path of nvme
+     * @param[in] success - Success or not that get NVMe Info by SMbus
      * @param[in] nvmeData - The Dbus path of nvme
      */
-    void setSSDLEDStatus(phosphor::nvme::Nvme::NVMeConfig config, bool success,
-                         phosphor::nvme::Nvme::NVMeData nvmeData);
+    void setLEDsStatus(const phosphor::nvme::Nvme::NVMeConfig& config,
+                       bool success,
+                       const phosphor::nvme::Nvme::NVMeData& nvmeData);
 
-    /** @brief Set SSD fault LED status
-     *
-     * @param[in] property - Property 'Asserted' in D-bus LED.GroupManager
-     * @param[in] value - true or false, turn on/off LED
-     * @param[in] ledPath - The Dbus path of fault LED
-     */
-    template <typename T>
-    void setFaultLED(const std::string& property, const T& value,
-                     std::string& ledPath);
-    /** @brief Set SSD locate LED status
-     *
-     * @param[in] property - Property 'State' in D-bus LED.Controller
-     * @param[in] value - On or Off, turn on/off LED
-     * @param[in] locateLedBusName - The D-bus name of locate LED
-     * @param[in] locateLedPath - The Dbus path of locate LED
-     */
-    template <typename T>
-    void setLocateLED(const std::string& property, const T& value,
-                      std::string& locateLedBusName,
-                      std::string& locateLedPath);
-    /** @brief Before toggle fault LED, check whether is Identify or not.*/
-    void checkAssertFaultLED(std::string& locateLedGroupPath,
-                             std::string& ledPath, bool request);
-    /** @brief Before toggle locate LED, check whether is Identify or not.*/
-    void checkAssertLocateLED(std::string& ledPath,
-                              std::string& locateLedBusName,
-                              std::string& locateLedPath, bool ispresent);
+    /** @brief Set SSD fault LED status */
+    void setFaultLED(const std::string& locateLedGroupPath,
+                     const std::string& ledPath, const bool& request);
+    /** @brief Set SSD locate LED status */
+    void setLocateLED(const std::string& ledPath,
+                      const std::string& locateLedBusName,
+                      const std::string& locateLedPath, const bool& ispresent);
     /** @brief Get Identify State*/
-    bool getLEDGroupState(std::string& ledPath);
-
-    /** @brief Set inventory properties of nvme
-     *
-     * @param[in] objPath - The object path of nvme in D-bus Inventory.Manager.
-     * @param[in] interface - The interface of nvme in D-bus Inventory.Manager.
-     * @param[in] property - The property of nvme in D-bus Inventory.Manager.
-     * @param[in] value - The value of the property
-     */
-    template <typename T>
-    void setInventoryParm(std::string& objPath, const std::string& interface,
-                          const std::string& property, const T& value);
+    bool getLEDGroupState(const std::string& ledPath);
 
     /** @brief Set inventory properties of nvme */
-    void setNvmeInventoryProperties(bool present,
-                                    phosphor::nvme::Nvme::NVMeData nvmeData,
-                                    std::string inventoryPath);
-    /** @brief Set five fault states by smartWarning */
-    void assertFaultLog(int smartWarning, std::string inventoryPath);
+    void setNvmeInventoryProperties(
+        const bool& present, const phosphor::nvme::Nvme::NVMeData& nvmeData,
+        const std::string& inventoryPath);
 
     void createNVMeInventory();
 
@@ -154,33 +122,12 @@ class Nvme
     /** @brief Read Timer */
     sdeventplus::utility::Timer<sdeventplus::ClockId::Monotonic> _timer;
 
+    std::vector<phosphor::nvme::Nvme::NVMeConfig> configs;
+
     /** @brief Set up initial configuration value of NVMe */
     void init();
     /** @brief Monitor NVMe drives every one second  */
     void read();
-
-    /** @brief Invoke inventory manager notify method. */
-    template <typename... Args>
-    static auto
-        CallMethodNotify(sdbusplus::bus::bus& bus, const std::string& busName,
-                         const std::string& path, const std::string& interface,
-                         const std::string& method, Args&&... args)
-    {
-        auto reqMsg = bus.new_method_call(busName.c_str(), path.c_str(),
-                                          interface.c_str(), method.c_str());
-        reqMsg.append(std::forward<Args>(args)...);
-        try
-        {
-            auto respMsg = bus.call(reqMsg);
-        }
-        catch (const std::exception& e)
-        {
-            std::cerr
-                << "Call method fail: Call inventory manager notify. ERROR = "
-                << e.what() << std::endl;
-            return;
-        }
-    }
 };
 } // namespace nvme
 } // namespace phosphor
