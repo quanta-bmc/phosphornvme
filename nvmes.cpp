@@ -1,17 +1,9 @@
-#include "nvme_manager.hpp"
-
-#include <iostream>
-#include <phosphor-logging/elog-errors.hpp>
-#include <phosphor-logging/log.hpp>
-#include <sstream>
-#include <string>
+#include "nvmes.hpp"
 
 namespace phosphor
 {
 namespace nvme
 {
-using namespace std;
-using namespace phosphor::logging;
 
 void NvmeSSD::checkSensorThreshold()
 {
@@ -21,25 +13,13 @@ void NvmeSSD::checkSensorThreshold()
     uint64_t warningHigh = WarningInterface::warningHigh();
     uint64_t warningLow = WarningInterface::warningLow();
 
-    if (value > criticalHigh)
-        CriticalInterface::criticalAlarmHigh(true);
-    else
-        CriticalInterface::criticalAlarmHigh(false);
+    CriticalInterface::criticalAlarmHigh(value > criticalHigh);
 
-    if (value < criticalLow)
-        CriticalInterface::criticalAlarmLow(true);
-    else
-        CriticalInterface::criticalAlarmLow(false);
+    CriticalInterface::criticalAlarmLow(value < criticalLow);
 
-    if (value > warningHigh)
-        WarningInterface::warningAlarmHigh(true);
-    else
-        WarningInterface::warningAlarmHigh(false);
+    WarningInterface::warningAlarmHigh(value > warningHigh);
 
-    if (value < warningLow)
-        WarningInterface::warningAlarmLow(true);
-    else
-        WarningInterface::warningAlarmLow(false);
+    WarningInterface::warningAlarmLow(value < warningLow);
 }
 
 void NvmeSSD::setSensorThreshold(uint64_t criticalHigh, uint64_t criticalLow,

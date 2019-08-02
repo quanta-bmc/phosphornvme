@@ -1,11 +1,11 @@
 #include "nvme_manager.hpp"
 
-#include "nlohmann/json.hpp"
 #include "smbus.hpp"
 
 #include <experimental/filesystem>
 #include <fstream>
 #include <map>
+#include <nlohmann/json.hpp>
 #include <phosphor-logging/elog-errors.hpp>
 #include <phosphor-logging/log.hpp>
 #include <sdbusplus/message.hpp>
@@ -20,11 +20,27 @@
 #define GPIO_BASE_PATH "/sys/class/gpio/gpio"
 #define IS_PRESENT "0"
 #define POWERGD "1"
+#define NOWARNING_STRING "ff"
 
 static constexpr auto configFile = "/etc/nvme/nvme_config.json";
 auto retries = 3;
 static constexpr auto delay = std::chrono::milliseconds{100};
 using Json = nlohmann::json;
+
+static constexpr const uint8_t COMMAND_CODE_0 = 0;
+static constexpr const uint8_t COMMAND_CODE_8 = 8;
+
+static constexpr int CapacityFaultMask = 1;
+static constexpr int temperatureFaultMask = 1 << 1;
+static constexpr int DegradesFaultMask = 1 << 2;
+static constexpr int MediaFaultMask = 1 << 3;
+static constexpr int BackupDeviceFaultMask = 1 << 4;
+static constexpr int NOWARNING = 255;
+
+static constexpr int SERIALNUMBER_START_INDEX = 3;
+static constexpr int SERIALNUMBER_END_INDEX = 23;
+
+static constexpr const u_int64_t TEMPERATURE_SENSOR_FAILURE = 129;
 
 namespace fs = std::experimental::filesystem;
 
@@ -57,45 +73,29 @@ void Nvme::setNvmeInventoryProperties(
                                  NVME_STATUS_IFACE, "DriveLifeUsed",
                                  nvmeData.driveLifeUsed);
 
-    if (!nvmeData.smartWarnings.empty())
-    {
-        auto smartWarning = std::stoi(nvmeData.smartWarnings, 0, 16);
+    auto smartWarning = (!nvmeData.smartWarnings.empty())
+                            ? std::stoi(nvmeData.smartWarnings, 0, 16)
+                            : NOWARNING;
 
-        for (int bitOffset = 0; bitOffset < 5; bitOffset++)
-        {
-            auto isFault =
-                (((smartWarning >> bitOffset) & 1) == 0) ? true : false;
+    util::SDBusPlus::setProperty(bus, INVENTORY_BUSNAME, inventoryPath,
+                                 NVME_STATUS_IFACE, "CapacityFault",
+                                 !(smartWarning & CapacityFaultMask));
 
-            switch (bitOffset)
-            {
-                case 0:
-                    util::SDBusPlus::setProperty(
-                        bus, INVENTORY_BUSNAME, inventoryPath,
-                        NVME_STATUS_IFACE, "CapacityFault", isFault);
-                    break;
-                case 1:
-                    util::SDBusPlus::setProperty(
-                        bus, INVENTORY_BUSNAME, inventoryPath,
-                        NVME_STATUS_IFACE, "TemperatureFault", isFault);
-                    break;
-                case 2:
-                    util::SDBusPlus::setProperty(
-                        bus, INVENTORY_BUSNAME, inventoryPath,
-                        NVME_STATUS_IFACE, "DegradesFault", isFault);
-                    break;
-                case 3:
-                    util::SDBusPlus::setProperty(
-                        bus, INVENTORY_BUSNAME, inventoryPath,
-                        NVME_STATUS_IFACE, "MediaFault", isFault);
-                    break;
-                case 4:
-                    util::SDBusPlus::setProperty(
-                        bus, INVENTORY_BUSNAME, inventoryPath,
-                        NVME_STATUS_IFACE, "BackupDeviceFault", isFault);
-                    break;
-            }
-        }
-    }
+    util::SDBusPlus::setProperty(bus, INVENTORY_BUSNAME, inventoryPath,
+                                 NVME_STATUS_IFACE, "TemperatureFault",
+                                 !(smartWarning & temperatureFaultMask));
+
+    util::SDBusPlus::setProperty(bus, INVENTORY_BUSNAME, inventoryPath,
+                                 NVME_STATUS_IFACE, "DegradesFault",
+                                 !(smartWarning & DegradesFaultMask));
+
+    util::SDBusPlus::setProperty(bus, INVENTORY_BUSNAME, inventoryPath,
+                                 NVME_STATUS_IFACE, "MediaFault",
+                                 !(smartWarning & MediaFaultMask));
+
+    util::SDBusPlus::setProperty(bus, INVENTORY_BUSNAME, inventoryPath,
+                                 NVME_STATUS_IFACE, "BackupDeviceFault",
+                                 !(smartWarning & BackupDeviceFaultMask));
 }
 
 void Nvme::setFaultLED(const std::string& locateLedGroupPath,
@@ -158,9 +158,10 @@ void Nvme::setLEDsStatus(const phosphor::nvme::Nvme::NVMeConfig& config,
     {
         if (!nvmeData.smartWarnings.empty())
         {
-            auto request = (strcmp(nvmeData.smartWarnings.c_str(), "ff") == 0)
-                               ? false
-                               : true;
+            auto request =
+                (strcmp(nvmeData.smartWarnings.c_str(), NOWARNING_STRING) == 0)
+                    ? false
+                    : true;
 
             setFaultLED(config.locateLedGroupPath, config.faultLedGroupPath,
                         request);
@@ -198,15 +199,14 @@ bool getNVMeInfobyBusID(int busID, phosphor::nvme::Nvme::NVMeData& nvmeData)
     nvmeData.smartWarnings = "";
     nvmeData.statusFlags = "";
     nvmeData.driveLifeUsed = "";
-    nvmeData.sensorValue = 129;
+    nvmeData.sensorValue = TEMPERATURE_SENSOR_FAILURE;
 
     phosphor::smbus::Smbus smbus;
 
-    unsigned char rsp_data_command_0[8] = {0};
-    unsigned char rsp_data_command_8[24] = {0};
+    unsigned char rsp_data_command_0[I2C_DATA_MAX] = {0};
+    unsigned char rsp_data_command_8[I2C_DATA_MAX] = {0};
 
-    // command code
-    uint8_t in_data = 0;
+    uint8_t tx_data = COMMAND_CODE_0;
 
     auto init = smbus.smbusInit(busID);
 
@@ -219,8 +219,9 @@ bool getNVMeInfobyBusID(int busID, phosphor::nvme::Nvme::NVMeData& nvmeData)
         return nvmeData.present;
     }
 
-    auto res_int = smbus.SendSmbusRWBlockCmdRAW(
-        busID, NVME_SSD_SLAVE_ADDRESS, &in_data, 1, rsp_data_command_0);
+    auto res_int =
+        smbus.SendSmbusRWBlockCmdRAW(busID, NVME_SSD_SLAVE_ADDRESS, &tx_data,
+                                     sizeof(tx_data), rsp_data_command_0);
 
     if (res_int < 0)
     {
@@ -231,11 +232,11 @@ bool getNVMeInfobyBusID(int busID, phosphor::nvme::Nvme::NVMeData& nvmeData)
         return nvmeData.present;
     }
 
-    // command code
-    in_data = 8;
+    tx_data = COMMAND_CODE_8;
 
-    res_int = smbus.SendSmbusRWBlockCmdRAW(busID, NVME_SSD_SLAVE_ADDRESS,
-                                           &in_data, 1, rsp_data_command_8);
+    res_int =
+        smbus.SendSmbusRWBlockCmdRAW(busID, NVME_SSD_SLAVE_ADDRESS, &tx_data,
+                                     sizeof(tx_data), rsp_data_command_8);
 
     if (res_int < 0)
     {
@@ -248,8 +249,8 @@ bool getNVMeInfobyBusID(int busID, phosphor::nvme::Nvme::NVMeData& nvmeData)
     nvmeData.vendor =
         intToHex(rsp_data_command_8[1]) + " " + intToHex(rsp_data_command_8[2]);
 
-    // offset: serialNumber position
-    for (int offset = 3; offset < 23; offset++)
+    for (int offset = SERIALNUMBER_START_INDEX; offset < SERIALNUMBER_END_INDEX;
+         offset++)
     {
         nvmeData.serialNumber += static_cast<char>(rsp_data_command_8[offset]);
     }
@@ -339,7 +340,7 @@ std::vector<phosphor::nvme::Nvme::NVMeConfig> getNvmeConfig()
         {
             for (const auto& instance : readings)
             {
-                uint8_t index = instance.value("NvmeDriveIndex", 0);
+                uint8_t index = instance.value("NVMeDriveIndex", 0);
                 uint8_t busID = instance.value("NVMeDriveBusID", 0);
                 std::string faultLedGroupPath =
                     instance.value("NVMeDriveFaultLEDGroupPath", "");
