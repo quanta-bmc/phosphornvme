@@ -1,3 +1,5 @@
+#pragma once
+
 #include "config.h"
 
 #include "nvmes.hpp"
@@ -91,7 +93,7 @@ class Nvme
      *
      * @param[in] config - Nvme configure data
      * @param[in] success - Success or not that get NVMe Info by SMbus
-     * @param[in] nvmeData - The Dbus path of nvme
+     * @param[in] nvmeData - Nvme information
      */
     void setLEDsStatus(const phosphor::nvme::Nvme::NVMeConfig& config,
                        bool success,
