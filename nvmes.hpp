@@ -49,13 +49,13 @@ class NvmeSSD : public NvmeIfaces
     }
 
     /** @brief Set sensor value temperature to nvme D-bus  */
-    void setSensorValueToDbus(const u_int64_t value);
+    void setSensorValueToDbus(const int16_t value);
     /** @brief Check if sensor value higher or lower threshold */
     void checkSensorThreshold();
     /** @brief Set Sensor Threshold to D-bus at beginning */
-    void setSensorThreshold(uint64_t criticalHigh, uint64_t criticalLow,
-                            uint64_t maxValue, uint64_t minValue,
-                            uint64_t warningHigh, uint64_t warningLow);
+    void setSensorThreshold(int8_t criticalHigh, int8_t criticalLow,
+                            int8_t maxValue, int8_t minValue,
+                            int8_t warningHigh, int8_t warningLow);
 
   private:
     sdbusplus::bus::bus& bus;

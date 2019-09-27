@@ -5,6 +5,7 @@
 #include "nvmes.hpp"
 #include "sdbusplus.hpp"
 
+#include <fstream>
 #include <sdbusplus/bus.hpp>
 #include <sdbusplus/server.hpp>
 #include <sdbusplus/server/object.hpp>
@@ -38,6 +39,8 @@ class Nvme
         bus(bus), _event(sdeventplus::Event::get_default()),
         _timer(_event, std::bind(&Nvme::read, this))
     {
+        // read json file
+        configs = getNvmeConfig();
     }
 
     /**
@@ -45,7 +48,7 @@ class Nvme
      */
     struct NVMeConfig
     {
-        uint8_t index;
+        std::string index;
         uint8_t busID;
         std::string faultLedGroupPath;
         uint8_t presentPin;
@@ -53,12 +56,12 @@ class Nvme
         std::string locateLedControllerBusName;
         std::string locateLedControllerPath;
         std::string locateLedGroupPath;
-        uint64_t criticalHigh;
-        uint64_t criticalLow;
-        uint64_t maxValue;
-        uint64_t minValue;
-        uint64_t warningHigh;
-        uint64_t warningLow;
+        int8_t criticalHigh;
+        int8_t criticalLow;
+        int8_t maxValue;
+        int8_t minValue;
+        int8_t warningHigh;
+        int8_t warningLow;
     };
 
     /**
@@ -72,8 +75,8 @@ class Nvme
         std::string smartWarnings; /* Indicates smart warnings for the state  */
         std::string statusFlags;   /* Indicates the status of the drives  */
         std::string
-            driveLifeUsed; /* A vendor specific estimate of the percentage  */
-        u_int64_t sensorValue; /* Sensor value, if sensor value didn't be
+            driveLifeUsed;   /* A vendor specific estimate of the percentage  */
+        int16_t sensorValue; /* Sensor value, if sensor value didn't be
                                   update, means sensor failure, default set to
                                   129(0x81) accroding to NVMe-MI SPEC*/
     };
@@ -130,6 +133,8 @@ class Nvme
     void init();
     /** @brief Monitor NVMe drives every one second  */
     void read();
+
+    std::vector<phosphor::nvme::Nvme::NVMeConfig> getNvmeConfig();
 };
 } // namespace nvme
 } // namespace phosphor

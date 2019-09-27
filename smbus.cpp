@@ -12,9 +12,10 @@
 #include <iostream>
 #include <mutex>
 
-#include "i2c-dev.h"
+#include "i2c.h"
 
 #define MAX_I2C_BUS 30
+static constexpr bool DEBUG = false;
 
 static int fd[MAX_I2C_BUS] = {0};
 
@@ -25,8 +26,8 @@ namespace smbus
 
 std::mutex gMutex;
 
-int phosphor::smbus::Smbus::open_i2c_dev(int i2cbus, char* filename,
-                                         size_t size, int quiet)
+int phosphor::smbus::Smbus::openI2cDev(int i2cbus, char* filename, size_t size,
+                                       int quiet)
 {
     int file;
 
@@ -40,23 +41,26 @@ int phosphor::smbus::Smbus::open_i2c_dev(int i2cbus, char* filename,
         file = open(filename, O_RDWR);
     }
 
-    if (file < 0 && !quiet)
+    if (DEBUG)
     {
-        if (errno == ENOENT)
+        if (file < 0 && !quiet)
         {
-            fprintf(stderr,
-                    "Error: Could not open file "
-                    "`/dev/i2c-%d' or `/dev/i2c/%d': %s\n",
-                    i2cbus, i2cbus, strerror(ENOENT));
-        }
-        else
-        {
-            fprintf(stderr,
-                    "Error: Could not open file "
-                    "`%s': %s\n",
-                    filename, strerror(errno));
-            if (errno == EACCES)
-                fprintf(stderr, "Run as root?\n");
+            if (errno == ENOENT)
+            {
+                fprintf(stderr,
+                        "Error: Could not open file "
+                        "`/dev/i2c-%d' or `/dev/i2c/%d': %s\n",
+                        i2cbus, i2cbus, strerror(ENOENT));
+            }
+            else
+            {
+                fprintf(stderr,
+                        "Error: Could not open file "
+                        "`%s': %s\n",
+                        filename, strerror(errno));
+                if (errno == EACCES)
+                    fprintf(stderr, "Run as root?\n");
+            }
         }
     }
 
@@ -70,7 +74,7 @@ int phosphor::smbus::Smbus::smbusInit(int smbus_num)
 
     gMutex.lock();
 
-    fd[smbus_num] = open_i2c_dev(smbus_num, filename, sizeof(filename), 0);
+    fd[smbus_num] = openI2cDev(smbus_num, filename, sizeof(filename), 0);
     if (fd[smbus_num] < 0)
     {
         gMutex.unlock();
@@ -103,9 +107,9 @@ int phosphor::smbus::Smbus::SendSmbusRWBlockCmdRAW(int smbus_num,
 
     gMutex.lock();
 
-    res = i2c_read_after_write(fd[smbus_num], 0, device_addr, tx_len,
+    res = i2c_read_after_write(fd[smbus_num], device_addr, tx_len,
                                (unsigned char*)tx_data, I2C_DATA_MAX,
-                               (const unsigned char*)Rx_buf);
+                               (unsigned char*)Rx_buf);
 
     if (res < 0)
     {
