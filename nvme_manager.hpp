@@ -75,8 +75,8 @@ class Nvme
         std::string smartWarnings; /* Indicates smart warnings for the state  */
         std::string statusFlags;   /* Indicates the status of the drives  */
         std::string
-            driveLifeUsed;   /* A vendor specific estimate of the percentage  */
-        int16_t sensorValue; /* Sensor value, if sensor value didn't be
+            driveLifeUsed;  /* A vendor specific estimate of the percentage  */
+        int8_t sensorValue; /* Sensor value, if sensor value didn't be
                                   update, means sensor failure, default set to
                                   129(0x81) accroding to NVMe-MI SPEC*/
     };
