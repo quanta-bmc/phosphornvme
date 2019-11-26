@@ -9,8 +9,6 @@
 #include <sys/ioctl.h>
 #include <unistd.h>
 
-#include "i2c-dev.h"
-
 namespace phosphor
 {
 namespace smbus
@@ -21,7 +19,7 @@ class Smbus
   public:
     Smbus(){};
 
-    int open_i2c_dev(int i2cbus, char* filename, size_t size, int quiet);
+    int openI2cDev(int i2cbus, char* filename, size_t size, int quiet);
 
     int smbusInit(int smbus_num);
 

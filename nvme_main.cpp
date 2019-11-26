@@ -8,8 +8,6 @@
 #include <sdbusplus/bus.hpp>
 #include <sdbusplus/sdbus.hpp>
 #include <sdbusplus/server/manager.hpp>
-#include <set>
-
 using namespace phosphor::logging;
 
 int main(void)

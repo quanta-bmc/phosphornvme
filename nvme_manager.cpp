@@ -2,8 +2,7 @@
 
 #include "smbus.hpp"
 
-#include <experimental/filesystem>
-#include <fstream>
+#include <filesystem>
 #include <map>
 #include <nlohmann/json.hpp>
 #include <phosphor-logging/elog-errors.hpp>
@@ -13,7 +12,7 @@
 #include <string>
 #include <xyz/openbmc_project/Led/Physical/server.hpp>
 
-#include "i2c-dev.h"
+#include "i2c.h"
 
 #define MONITOR_INTERVAL_SECONDS 1
 #define NVME_SSD_SLAVE_ADDRESS 0x6a
@@ -23,7 +22,6 @@
 #define NOWARNING_STRING "ff"
 
 static constexpr auto configFile = "/etc/nvme/nvme_config.json";
-auto retries = 3;
 static constexpr auto delay = std::chrono::milliseconds{100};
 using Json = nlohmann::json;
 
@@ -42,7 +40,7 @@ static constexpr int SERIALNUMBER_END_INDEX = 23;
 
 static constexpr const u_int64_t TEMPERATURE_SENSOR_FAILURE = 129;
 
-namespace fs = std::experimental::filesystem;
+namespace fs = std::filesystem;
 
 namespace phosphor
 {
@@ -154,6 +152,8 @@ void Nvme::setLEDsStatus(const phosphor::nvme::Nvme::NVMeConfig& config,
                          bool success,
                          const phosphor::nvme::Nvme::NVMeData& nvmeData)
 {
+    static std::unordered_map<std::string, bool> isError;
+
     if (success)
     {
         if (!nvmeData.smartWarnings.empty())
@@ -169,12 +169,18 @@ void Nvme::setLEDsStatus(const phosphor::nvme::Nvme::NVMeConfig& config,
                          config.locateLedControllerBusName,
                          config.locateLedControllerPath, !request);
         }
+        isError[config.index] = false;
     }
     else
     {
-        // Drive is present but can not get data, turn on fault LED.
-        std::cerr << "Drive status is good but can not get data. index = "
-                  << std::to_string(config.index) << std::endl;
+        if (isError[config.index] != true)
+        {
+            // Drive is present but can not get data, turn on fault LED.
+            std::cerr << "Drive status is good but can not get data. index = "
+                      << config.index << std::endl;
+            isError[config.index] = true;
+        }
+
         setFaultLED(config.locateLedGroupPath, config.faultLedGroupPath, true);
         setLocateLED(config.locateLedGroupPath,
                      config.locateLedControllerBusName,
@@ -210,9 +216,15 @@ bool getNVMeInfobyBusID(int busID, phosphor::nvme::Nvme::NVMeData& nvmeData)
 
     auto init = smbus.smbusInit(busID);
 
+    static std::unordered_map<int, bool> isErrorSmbus;
+
     if (init == -1)
     {
-        std::cerr << "smbusInit fail!" << std::endl;
+        if (isErrorSmbus[busID] != true)
+        {
+            std::cerr << "smbusInit fail!" << std::endl;
+            isErrorSmbus[busID] = true;
+        }
 
         nvmeData.present = false;
 
@@ -225,7 +237,11 @@ bool getNVMeInfobyBusID(int busID, phosphor::nvme::Nvme::NVMeData& nvmeData)
 
     if (res_int < 0)
     {
-        std::cerr << "Send command code 0 fail!" << std::endl;
+        if (isErrorSmbus[busID] != true)
+        {
+            std::cerr << "Send command code 0 fail!" << std::endl;
+            isErrorSmbus[busID] = true;
+        }
 
         smbus.smbusClose(busID);
         nvmeData.present = false;
@@ -240,7 +256,12 @@ bool getNVMeInfobyBusID(int busID, phosphor::nvme::Nvme::NVMeData& nvmeData)
 
     if (res_int < 0)
     {
-        std::cerr << "Send command code 8 fail!" << std::endl;
+        if (isErrorSmbus[busID] != true)
+        {
+            std::cerr << "Send command code 8 fail!" << std::endl;
+            isErrorSmbus[busID] = true;
+        }
+
         smbus.smbusClose(busID);
         nvmeData.present = false;
         return nvmeData.present;
@@ -258,9 +279,11 @@ bool getNVMeInfobyBusID(int busID, phosphor::nvme::Nvme::NVMeData& nvmeData)
     nvmeData.statusFlags = intToHex(rsp_data_command_0[1]);
     nvmeData.smartWarnings = intToHex(rsp_data_command_0[2]);
     nvmeData.driveLifeUsed = intToHex(rsp_data_command_0[4]);
-    nvmeData.sensorValue = (u_int64_t)rsp_data_command_0[3];
+    nvmeData.sensorValue = (int16_t)rsp_data_command_0[3];
 
     smbus.smbusClose(busID);
+
+    isErrorSmbus[busID] = false;
 
     return nvmeData.present;
 }
@@ -300,17 +323,17 @@ Json parseSensorConfig()
 }
 
 /** @brief Obtain the initial configuration value of NVMe  */
-std::vector<phosphor::nvme::Nvme::NVMeConfig> getNvmeConfig()
+std::vector<phosphor::nvme::Nvme::NVMeConfig> Nvme::getNvmeConfig()
 {
 
     phosphor::nvme::Nvme::NVMeConfig nvmeConfig;
     std::vector<phosphor::nvme::Nvme::NVMeConfig> nvmeConfigs;
-    uint64_t criticalHigh = 0;
-    uint64_t criticalLow = 0;
-    uint64_t maxValue = 0;
-    uint64_t minValue = 0;
-    uint64_t warningHigh = 0;
-    uint64_t warningLow = 0;
+    int8_t criticalHigh = 0;
+    int8_t criticalLow = 0;
+    int8_t maxValue = 0;
+    int8_t minValue = 0;
+    int8_t warningHigh = 0;
+    int8_t warningLow = 0;
 
     try
     {
@@ -353,7 +376,7 @@ std::vector<phosphor::nvme::Nvme::NVMeConfig> getNvmeConfig()
                 std::string locateLedControllerPath =
                     instance.value("NVMeDriveLocateLEDControllerPath", "");
 
-                nvmeConfig.index = index;
+                nvmeConfig.index = std::to_string(index);
                 nvmeConfig.busID = busID;
                 nvmeConfig.faultLedGroupPath = faultLedGroupPath;
                 nvmeConfig.presentPin = presentPin;
@@ -389,8 +412,9 @@ std::string Nvme::getGPIOValueOfNvme(const std::string& fullPath)
 {
     std::string val;
     std::ifstream ifs;
+    auto retries = 3;
 
-    while (true)
+    while (retries != 0)
     {
         try
         {
@@ -424,10 +448,9 @@ void Nvme::createNVMeInventory()
     std::string inventoryPath;
     std::map<sdbusplus::message::object_path, Interfaces> obj;
 
-    for (int i = 0; i < (int)(configs.size()); i++)
+    for (const auto config : configs)
     {
-        inventoryPath = "/system/chassis/motherboard/nvme" +
-                        std::to_string(configs[i].index);
+        inventoryPath = "/system/chassis/motherboard/nvme" + config.index;
 
         obj = {{
             inventoryPath,
@@ -440,8 +463,6 @@ void Nvme::createNVMeInventory()
 
 void Nvme::init()
 {
-    // read json file
-    configs = getNvmeConfig();
     createNVMeInventory();
 }
 
@@ -452,18 +473,20 @@ void Nvme::read()
     std::string devPwrGoodPath;
     std::string inventoryPath;
 
-    for (int i = 0; i < (int)(configs.size()); i++)
+    static std::unordered_map<std::string, bool> isErrorPower;
+
+    for (auto config : configs)
     {
         NVMeData nvmeData;
         devPresentPath =
-            GPIO_BASE_PATH + std::to_string(configs[i].presentPin) + "/value";
+            GPIO_BASE_PATH + std::to_string(config.presentPin) + "/value";
 
         devPwrGoodPath =
-            GPIO_BASE_PATH + std::to_string(configs[i].pwrGoodPin) + "/value";
+            GPIO_BASE_PATH + std::to_string(config.pwrGoodPin) + "/value";
 
-        inventoryPath = NVME_INVENTORY_PATH + std::to_string(configs[i].index);
+        inventoryPath = NVME_INVENTORY_PATH + config.index;
 
-        auto iter = nvmes.find(std::to_string(configs[i].index));
+        auto iter = nvmes.find(config.index);
 
         if (getGPIOValueOfNvme(devPresentPath) == IS_PRESENT)
         {
@@ -472,56 +495,65 @@ void Nvme::read()
             if (getGPIOValueOfNvme(devPwrGoodPath) == POWERGD)
             {
                 // get NVMe information through i2c by busID.
-                auto success = getNVMeInfobyBusID(configs[i].busID, nvmeData);
+                auto success = getNVMeInfobyBusID(config.busID, nvmeData);
                 // can not find. create dbus
                 if (iter == nvmes.end())
                 {
-                    std::cerr << "SSD plug. index = "
-                              << std::to_string(configs[i].index) << std::endl;
+                    std::cerr << "SSD plug. index = " << config.index
+                              << std::endl;
 
-                    std::string objPath =
-                        NVME_OBJ_PATH + std::to_string(configs[i].index);
+                    std::string objPath = NVME_OBJ_PATH + config.index;
                     auto nvmeSSD = std::make_shared<phosphor::nvme::NvmeSSD>(
                         bus, objPath.c_str());
-                    nvmes.emplace(std::to_string(configs[i].index), nvmeSSD);
+                    nvmes.emplace(config.index, nvmeSSD);
 
                     setNvmeInventoryProperties(true, nvmeData, inventoryPath);
                     nvmeSSD->setSensorValueToDbus(nvmeData.sensorValue);
                     nvmeSSD->setSensorThreshold(
-                        configs[i].criticalHigh, configs[i].criticalLow,
-                        configs[i].maxValue, configs[i].minValue,
-                        configs[i].warningHigh, configs[i].warningLow);
+                        config.criticalHigh, config.criticalLow,
+                        config.maxValue, config.minValue, config.warningHigh,
+                        config.warningLow);
 
                     nvmeSSD->checkSensorThreshold();
-                    setLEDsStatus(configs[i], success, nvmeData);
+                    setLEDsStatus(config, success, nvmeData);
                 }
                 else
                 {
                     setNvmeInventoryProperties(true, nvmeData, inventoryPath);
                     iter->second->setSensorValueToDbus(nvmeData.sensorValue);
                     iter->second->checkSensorThreshold();
-                    setLEDsStatus(configs[i], success, nvmeData);
+                    setLEDsStatus(config, success, nvmeData);
                 }
+
+                isErrorPower[config.index] = false;
             }
             else
             {
                 // Present pin is true but power good pin is false
                 // remove nvme d-bus path, clean all properties in inventory
                 // and turn on fault LED
-                std::cerr << "Present pin is true but power good pin is false. "
-                             "index = "
-                          << std::to_string(configs[i].index) << std::endl;
-                setFaultLED(configs[i].locateLedGroupPath,
-                            configs[i].faultLedGroupPath, true);
-                setLocateLED(configs[i].locateLedGroupPath,
-                             configs[i].locateLedControllerBusName,
-                             configs[i].locateLedControllerPath, false);
+
+                setFaultLED(config.locateLedGroupPath, config.faultLedGroupPath,
+                            true);
+                setLocateLED(config.locateLedGroupPath,
+                             config.locateLedControllerBusName,
+                             config.locateLedControllerPath, false);
 
                 nvmeData = NVMeData();
                 setNvmeInventoryProperties(false, nvmeData, inventoryPath);
-                nvmes.erase(std::to_string(configs[i].index));
-                std::cerr << "Erase SSD from map and d-bus. index = "
-                          << std::to_string(configs[i].index) << std::endl;
+                nvmes.erase(config.index);
+
+                if (isErrorPower[config.index] != true)
+                {
+                    std::cerr << "Present pin is true but power good "
+                                 "pin is false. "
+                                 "index = "
+                              << config.index << std::endl;
+                    std::cerr << "Erase SSD from map and d-bus. index = "
+                              << config.index << std::endl;
+
+                    isErrorPower[config.index] = true;
+                }
             }
         }
         else
@@ -530,15 +562,15 @@ void Nvme::read()
             // clean all properties in inventory
             // and turn off fault and locate LED
 
-            setFaultLED(configs[i].locateLedGroupPath,
-                        configs[i].faultLedGroupPath, false);
-            setLocateLED(configs[i].locateLedGroupPath,
-                         configs[i].locateLedControllerBusName,
-                         configs[i].locateLedControllerPath, false);
+            setFaultLED(config.locateLedGroupPath, config.faultLedGroupPath,
+                        false);
+            setLocateLED(config.locateLedGroupPath,
+                         config.locateLedControllerBusName,
+                         config.locateLedControllerPath, false);
 
             nvmeData = NVMeData();
             setNvmeInventoryProperties(false, nvmeData, inventoryPath);
-            nvmes.erase(std::to_string(configs[i].index));
+            nvmes.erase(config.index);
         }
     }
 }

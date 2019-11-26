@@ -7,11 +7,11 @@ namespace nvme
 
 void NvmeSSD::checkSensorThreshold()
 {
-    uint64_t value = ValueIface::value();
-    uint64_t criticalHigh = CriticalInterface::criticalHigh();
-    uint64_t criticalLow = CriticalInterface::criticalLow();
-    uint64_t warningHigh = WarningInterface::warningHigh();
-    uint64_t warningLow = WarningInterface::warningLow();
+    int16_t value = ValueIface::value();
+    int8_t criticalHigh = CriticalInterface::criticalHigh();
+    int8_t criticalLow = CriticalInterface::criticalLow();
+    int8_t warningHigh = WarningInterface::warningHigh();
+    int8_t warningLow = WarningInterface::warningLow();
 
     CriticalInterface::criticalAlarmHigh(value > criticalHigh);
 
@@ -22,9 +22,9 @@ void NvmeSSD::checkSensorThreshold()
     WarningInterface::warningAlarmLow(value < warningLow);
 }
 
-void NvmeSSD::setSensorThreshold(uint64_t criticalHigh, uint64_t criticalLow,
-                                 uint64_t maxValue, uint64_t minValue,
-                                 uint64_t warningHigh, uint64_t warningLow)
+void NvmeSSD::setSensorThreshold(int8_t criticalHigh, int8_t criticalLow,
+                                 int8_t maxValue, int8_t minValue,
+                                 int8_t warningHigh, int8_t warningLow)
 {
 
     CriticalInterface::criticalHigh(criticalHigh);
@@ -37,7 +37,7 @@ void NvmeSSD::setSensorThreshold(uint64_t criticalHigh, uint64_t criticalLow,
     ValueIface::minValue(minValue);
 }
 
-void NvmeSSD::setSensorValueToDbus(const u_int64_t value)
+void NvmeSSD::setSensorValueToDbus(const int16_t value)
 {
     ValueIface::value(value);
 }
