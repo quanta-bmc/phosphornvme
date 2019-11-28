@@ -38,7 +38,7 @@ static constexpr int NOWARNING = 255;
 static constexpr int SERIALNUMBER_START_INDEX = 3;
 static constexpr int SERIALNUMBER_END_INDEX = 23;
 
-static constexpr const u_int64_t TEMPERATURE_SENSOR_FAILURE = 129;
+static constexpr const int TEMPERATURE_SENSOR_FAILURE = 0x81;
 
 namespace fs = std::filesystem;
 
@@ -205,7 +205,7 @@ bool getNVMeInfobyBusID(int busID, phosphor::nvme::Nvme::NVMeData& nvmeData)
     nvmeData.smartWarnings = "";
     nvmeData.statusFlags = "";
     nvmeData.driveLifeUsed = "";
-    nvmeData.sensorValue = TEMPERATURE_SENSOR_FAILURE;
+    nvmeData.sensorValue = (int8_t)TEMPERATURE_SENSOR_FAILURE;
 
     phosphor::smbus::Smbus smbus;
 
@@ -279,7 +279,7 @@ bool getNVMeInfobyBusID(int busID, phosphor::nvme::Nvme::NVMeData& nvmeData)
     nvmeData.statusFlags = intToHex(rsp_data_command_0[1]);
     nvmeData.smartWarnings = intToHex(rsp_data_command_0[2]);
     nvmeData.driveLifeUsed = intToHex(rsp_data_command_0[4]);
-    nvmeData.sensorValue = (int16_t)rsp_data_command_0[3];
+    nvmeData.sensorValue = (int8_t)rsp_data_command_0[3];
 
     smbus.smbusClose(busID);
 
